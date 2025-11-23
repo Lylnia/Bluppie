@@ -4,7 +4,7 @@ import './index.css';
 import WebApp from '@twa-dev/sdk';
 import { TonConnectButton, useTonAddress, useTonConnectUI } from '@tonconnect/ui-react';
 
-// --- API AYARLARI ---
+// --- API AYARLARI (Backend) ---
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 async function apiCall(endpoint, method = 'GET', body = null) {
@@ -24,7 +24,6 @@ async function apiCall(endpoint, method = 'GET', body = null) {
 }
 
 // --- SABİTLER ---
-// Senin PIE Token Kontratın
 const PIE_TOKEN_CONTRACT = "EQDgIHYB656hYyTJKh0bdO2ABNAcLXa45wIhJrApgJE8Nhxk"; 
 
 const BLUPPIE_NFT_URL = "https://i.imgur.com/TDukTkX.png"; 
@@ -580,7 +579,6 @@ function App() {
     const [packsSold, setPacksSold] = useState(10);
     const [transactionHistory, setTransactionHistory] = useState([]);
     const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
-    const [isRefreshing, setIsRefreshing] = useState(false);
 
     // --- EFFECT: INITIALIZE ---
     useEffect(() => {
@@ -608,7 +606,7 @@ function App() {
 
     // --- DATA FETCHING (BAĞIMSIZ/PARALEL) ---
 
-    // 1. Sadece TON Bakiyesi (TON Center V2)
+    // 1. Sadece TON Bakiyesi (TON Center V2 - POST)
     const fetchTonBalance = async () => {
         if (!userFriendlyAddress) return;
         try {
@@ -632,10 +630,11 @@ function App() {
         }
     };
 
-    // 2. Sadece PIE Bakiyesi (TON Center V3)
+    // 2. Sadece PIE Bakiyesi (TON Center V3 - GET)
     const fetchPieBalance = async () => {
         if (!userFriendlyAddress) return;
         try {
+            // V3 API: Wallet bilgilerini ve Jetton bakiyelerini getirir.
             const jettonRes = await fetch(
                 `https://toncenter.com/api/v3/jetton/wallets?owner_address=${userFriendlyAddress}&jetton_address=${PIE_TOKEN_CONTRACT}&limit=1&offset=0`
             );
@@ -674,7 +673,6 @@ function App() {
     };
 
     const fetchAllData = async () => {
-        setIsRefreshing(true);
         // Hepsini paralel ve bağımsız çalıştır
         await Promise.allSettled([
             fetchTonBalance(), 
@@ -682,7 +680,6 @@ function App() {
             fetchBackendData(), 
             fetchMarketplace()
         ]);
-        setIsRefreshing(false);
     };
 
     const fetchMarketplace = async () => {
@@ -811,10 +808,6 @@ function App() {
                             <div className="balance-usd">
                                 ${currentUSDValue} 
                                 <button onClick={() => setShowBalanceTooltip(true)} style={{background:'none', border:'none', color: 'var(--color-text-secondary)', marginLeft: 8, cursor:'pointer'}}><Icons.Info /></button>
-                                {/* YENİLEME BUTONU */}
-                                <button onClick={fetchAllData} style={{background:'none', border:'none', color: 'var(--neon-cyan)', marginLeft: 8, cursor:'pointer', opacity: isRefreshing ? 0.5 : 1}}>
-                                    {isRefreshing ? '...' : '↻'}
-                                </button>
                             </div>
                             <div className="balance-pie">{formattedPieBalance} $PIE</div>
                         </div>
@@ -915,7 +908,6 @@ function App() {
                                 <span style={{display:'flex', alignItems:'center', gap:10}}><Icons.History /> Transaction History</span> <span>&gt;</span>
                             </button>
                         </div>
-                        {userFriendlyAddress && <button className="cta-btn" style={{background: 'transparent', border: '1px solid var(--neon-red)', color: 'var(--neon-red)'}} onClick={() => tonConnectUI.disconnect()}>DISCONNECT WALLET</button>}
                     </div>
 
                     <div className="holo-panel"> 

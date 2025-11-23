@@ -28,24 +28,25 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  -webkit-user-select: none; /* No text selection */
-  user-select: none;
+  -webkit-user-select: none; 
+  -moz-user-select: none;    
+  -ms-user-select: none;     
+  user-select: none;         
   -webkit-tap-highlight-color: transparent;
 }
 
+/* --- 3. BODY & AMBIENT BACKGROUND (The Vibe) --- */
 body {
   font-family: var(--font-body);
   background-color: var(--color-bg-deep);
   color: var(--color-text-primary);
   min-height: 100vh;
-  padding: 16px;
-  padding-bottom: 110px; /* Space for bottom nav */
-  overflow-x: hidden;
   width: 100vw;
+  overflow-x: hidden;
   position: relative;
 }
 
-/* --- 3. AMBIENT BACKGROUND & ANIMATIONS --- */
+/* Floating Orbs Animation */
 body::before, body::after {
   content: '';
   position: fixed;
@@ -53,7 +54,7 @@ body::before, body::after {
   height: 60vw;
   border-radius: 50%;
   filter: blur(100px);
-  z-index: -1;
+  z-index: -2; /* Behind everything */
   opacity: 0.4;
   animation: floatOrb 10s ease-in-out infinite alternate;
 }
@@ -76,6 +77,7 @@ body::after {
   100% { transform: translate(20px, 40px) scale(1.1); }
 }
 
+/* Noise Texture Overlay */
 .noise-overlay {
   position: fixed;
   top: 0;
@@ -83,12 +85,25 @@ body::after {
   width: 100%;
   height: 100%;
   pointer-events: none;
-  z-index: -1;
+  z-index: -1; /* Behind content, in front of orbs */
   opacity: 0.05;
   background: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
 }
 
-/* --- 4. IMAGE LOCKS (Stop dragging/long-press) --- */
+.app-container {
+  position: relative;
+  z-index: 1; /* Content sits on top */
+  padding: 16px;
+  padding-bottom: 110px;
+  min-height: 100vh;
+}
+
+.container {
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+/* --- 4. IMAGE LOCKS --- */
 img {
   -webkit-user-drag: none;
   -khtml-user-drag: none;
@@ -99,7 +114,7 @@ img {
   pointer-events: none;
 }
 
-/* --- 5. HOLO PANELS & CARDS --- */
+/* --- 5. HOLO PANELS & UI --- */
 .holo-panel {
   background: var(--color-glass-panel);
   backdrop-filter: blur(16px);
@@ -132,7 +147,7 @@ img {
   100% { box-shadow: 0 0 0 0 rgba(0, 243, 255, 0.1); border-color: var(--color-glass-border); }
 }
 
-/* --- 6. BUTTONS --- */
+/* --- 6. BUTTONS & INPUTS --- */
 .action-buttons {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -178,7 +193,7 @@ img {
   box-shadow: none;
 }
 
-/* --- 7. MARKETPLACE & GRID --- */
+/* --- 7. MARKETPLACE & CARDS --- */
 .item-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -227,7 +242,34 @@ img {
   text-shadow: 0 0 5px var(--neon-purple);
 }
 
-/* --- 8. NAVIGATION --- */
+/* --- 8. MODALS --- */
+.modal-overlay {
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 2000;
+}
+
+.modal-content {
+  background: #0a0a0a;
+  border: 1px solid var(--color-glass-border);
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.8);
+}
+
+.modal-item {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--color-glass-border);
+  color: var(--color-text-primary);
+  border-radius: 12px;
+  margin-bottom: 8px;
+  transition: 0.2s;
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  align-items: center;
+}
+
+/* --- 9. NAVIGATION & SCROLL --- */
 .bottom-nav {
   background: rgba(10, 10, 10, 0.85);
   backdrop-filter: blur(20px);
@@ -267,12 +309,6 @@ img {
   text-shadow: 0 0 10px rgba(0,243,255,0.5);
 }
 
-/* --- 9. UTILITIES --- */
-.text-neon { color: var(--neon-cyan); }
-.text-green { color: var(--neon-green); }
-.text-dim { color: var(--color-text-dim); }
-
-/* --- 10. SCROLLBAR HIDING --- */
 .nft-scroll {
   display: flex;
   gap: 16px;
@@ -286,8 +322,14 @@ img {
 }
 .nft-card { flex: 0 0 180px; }
 
-/* --- 11. TON CONNECT OVERRIDES --- */
-/* This forces the wallet button to match your theme */
+/* --- 10. UTILITIES --- */
+.text-neon { color: var(--neon-cyan); }
+.text-green { color: var(--neon-green); }
+.text-dim { color: var(--color-text-dim); }
+.menu-item-button { border-bottom: 1px solid var(--color-glass-border); }
+.menu-item-button:last-child { border-bottom: none; }
+
+/* --- 11. TON CONNECT OVERRIDE --- */
 #ton-connect-button button {
     background: rgba(255, 255, 255, 0.05) !important;
     border: 1px solid var(--color-glass-border) !important;

@@ -24,7 +24,6 @@ async function apiCall(endpoint, method = 'GET', body = null) {
 }
 
 // --- SABİTLER ---
-// Senin PIE Token Kontratın
 const PIE_TOKEN_CONTRACT = "EQDgIHYB656hYyTJKh0bdO2ABNAcLXa45wIhJrApgJE8Nhxk"; 
 
 const BLUPPIE_NFT_URL = "https://i.imgur.com/TDukTkX.png"; 
@@ -580,6 +579,7 @@ function App() {
     const [packsSold, setPacksSold] = useState(10);
     const [transactionHistory, setTransactionHistory] = useState([]);
     const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+    const [isRefreshing, setIsRefreshing] = useState(false);
 
     // --- EFFECT: INITIALIZE ---
     useEffect(() => {
@@ -605,11 +605,11 @@ function App() {
         return () => { document.body.style.overflow = ''; };
     }, [isAnyModalOpen]);
 
-    // --- DATA FETCHING (GÜNCELLENMİŞ TON CENTER V3) ---
-    const fetchUserData = async () => {
-        if (!userFriendlyAddress) return;
+    // --- DATA FETCHING (AYRIŞTIRILMIŞ) ---
 
-        // 1. GERÇEK TON BAKİYESİ
+    // 1. Sadece TON Bakiyesi
+    const fetchTonBalance = async () => {
+        if (!userFriendlyAddress) return;
         try {
             const response = await fetch('https://toncenter.com/api/v2/jsonRPC', {
                 method: 'POST',
@@ -626,39 +626,45 @@ function App() {
                 const realTon = parseInt(data.result) / 1000000000;
                 setUserTonBalance(realTon);
             }
-        } catch (e) {
-            console.error("TON Fetch Error:", e);
-        }
+        } catch (e) { console.error("TON Fetch Error:", e); }
+    };
 
-        // 2. GERÇEK PIE TOKEN BAKİYESİ (TONCENTER V3 - ÜCRETSİZ)
+    // 2. Sadece PIE Bakiyesi (TONAPI.IO)
+    const fetchPieBalance = async () => {
+        if (!userFriendlyAddress) return;
         try {
-            // Toncenter V3 Jetton Wallets Endpoint
-            const jettonRes = await fetch(
-                `https://toncenter.com/api/v3/jetton/wallets?owner_address=${userFriendlyAddress}&jetton_address=${PIE_TOKEN_CONTRACT}&limit=1&offset=0`
-            );
+            const jettonRes = await fetch(`https://tonapi.io/v2/accounts/${userFriendlyAddress}/jettons`);
+            if (jettonRes.status === 429) { 
+                console.warn("TONAPI Rate Limit exceeded"); 
+                return; // Çok istek atıldıysa dur
+            }
             const jettonData = await jettonRes.json();
 
-            if (jettonData && jettonData.items && jettonData.items.length > 0) {
-                // Token bulundu, bakiyeyi al
-                const item = jettonData.items[0];
-                const decimals = parseInt(item.jetton.decimals) || 9;
-                const rawBalance = parseFloat(item.balance);
-                const formattedPie = rawBalance / Math.pow(10, decimals);
-                setUserPieBalance(formattedPie);
-            } else {
-                // Token bulunamadıysa bakiye 0
-                setUserPieBalance(0);
+            if (jettonData && jettonData.balances) {
+                const pieToken = jettonData.balances.find(
+                    token => token.jetton.address === PIE_TOKEN_CONTRACT
+                );
+                if (pieToken) {
+                    const decimals = pieToken.jetton.decimals || 9;
+                    const rawBalance = parseFloat(pieToken.balance);
+                    const formattedPie = rawBalance / Math.pow(10, decimals);
+                    setUserPieBalance(formattedPie);
+                } else {
+                    setUserPieBalance(0);
+                }
             }
-        } catch (e) {
-            console.error("PIE Token Fetch Error:", e);
-        }
+        } catch (e) { console.error("PIE Fetch Error:", e); }
+    };
 
-        // 3. ENVANTER VE GEÇMİŞ
+    // 3. Envanter (Backend)
+    const fetchBackendData = async () => {
+        if (!userFriendlyAddress) return;
         try {
             const apiData = await apiCall(`/user/${userFriendlyAddress}`);
             setUserInventory(apiData.inventory);
             setTransactionHistory(apiData.transactions);
         } catch (e) {
+            // Backend yoksa Demo Envanter
             if (userInventory.length === 0) {
                 setUserInventory([
                     { id: 1, name: "Plush Bluppie", item_number: 1, image_url: BLUPPIE_NFT_URL, status: "Owned" },
@@ -666,6 +672,13 @@ function App() {
                 ]);
             }
         }
+    };
+
+    const fetchAllData = async () => {
+        setIsRefreshing(true);
+        // Hepsini paralel ve bağımsız çalıştır
+        await Promise.allSettled([fetchTonBalance(), fetchPieBalance(), fetchBackendData(), fetchMarketplace()]);
+        setIsRefreshing(false);
     };
 
     const fetchMarketplace = async () => {
@@ -687,9 +700,12 @@ function App() {
     };
 
     useEffect(() => {
-        fetchUserData();
+        fetchAllData();
+    }, [userFriendlyAddress, activeTab]);
+
+    useEffect(() => {
         fetchMarketplace();
-    }, [userFriendlyAddress, activeTab, currentSort, marketplaceSearch]);
+    }, [currentSort, marketplaceSearch]);
 
     // --- ACTIONS ---
     const currentUSDValue = (userPieBalance * PIE_USD_PRICE).toFixed(2);
@@ -726,7 +742,7 @@ function App() {
             });
             if(res.status === 'success') {
                 showToast(`SUCCESS: Listed for ${listPrice} ${currency}.`, 'success');
-                fetchUserData();
+                fetchBackendData();
                 handleCloseFullPageViews();
             }
         } catch(e) { showToast("Listing Failed", "error"); }
@@ -737,7 +753,7 @@ function App() {
             const res = await apiCall(`/marketplace/delist/${nftId}`, 'POST');
             if(res.status === 'success') {
                 showToast(`Item #${nftId} delisted.`, 'success');
-                fetchUserData();
+                fetchBackendData();
             }
         } catch(e) { showToast("Delist Failed", "error"); }
     };
@@ -751,7 +767,7 @@ function App() {
             });
             if(res.status === 'success') {
                 showToast(`Acquired NFT!`, 'success');
-                fetchUserData(); 
+                fetchBackendData(); 
                 fetchMarketplace(); 
                 setShowBuyModal(false); 
             }
@@ -769,7 +785,7 @@ function App() {
             if(res.status === 'success') {
                 showToast(`Pack Unlocked! NFT #${res.nft.item_number} added.`, 'success');
                 setPacksSold(prev => prev + 1);
-                fetchUserData();
+                fetchBackendData();
                 setShowNewPackModal(false);
             }
         } catch(e) {
@@ -791,6 +807,10 @@ function App() {
                             <div className="balance-usd">
                                 ${currentUSDValue} 
                                 <button onClick={() => setShowBalanceTooltip(true)} style={{background:'none', border:'none', color: 'var(--color-text-secondary)', marginLeft: 8, cursor:'pointer'}}><Icons.Info /></button>
+                                {/* YENİLEME BUTONU */}
+                                <button onClick={fetchAllData} style={{background:'none', border:'none', color: 'var(--neon-cyan)', marginLeft: 8, cursor:'pointer', opacity: isRefreshing ? 0.5 : 1}}>
+                                    {isRefreshing ? '...' : '↻'}
+                                </button>
                             </div>
                             <div className="balance-pie">{formattedPieBalance} $PIE</div>
                         </div>

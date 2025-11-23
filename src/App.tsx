@@ -4,24 +4,10 @@ import './index.css';
 import WebApp from '@twa-dev/sdk';
 import { TonConnectButton, useTonAddress, useTonConnectUI } from '@tonconnect/ui-react';
 
-// --- API AYARLARI (Backend) ---
+// --- GÜVENLİ DEĞİŞKENLER (ENV) ---
+// Key ve URL'i .env dosyasından çeker
+const TONAPI_KEY = import.meta.env.VITE_TONAPI_KEY; 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
-
-async function apiCall(endpoint, method = 'GET', body = null) {
-    const options = {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-    };
-    if (body) options.body = JSON.stringify(body);
-    try {
-        const res = await fetch(`${API_URL}${endpoint}`, options);
-        if (!res.ok) throw new Error('API Error');
-        return await res.json();
-    } catch (error) {
-        console.error("Backend API Error:", error);
-        throw error;
-    }
-}
 
 // --- SABİTLER ---
 const PIE_TOKEN_CONTRACT = "EQDgIHYB656hYyTJKh0bdO2ABNAcLXa45wIhJrApgJE8Nhxk"; 
@@ -47,6 +33,23 @@ const LINK_GAME = "https://t.me/BluppieBot";
 const SOCIAL_TWITTER = "https://twitter.com/BluppieNFT";
 const SOCIAL_TELEGRAM = "https://t.me/BluppieNFT";
 const SOCIAL_DISCORD = "https://discord.gg/";
+
+// --- YARDIMCI FONKSİYONLAR ---
+async function apiCall(endpoint, method = 'GET', body = null) {
+    const options = {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+    };
+    if (body) options.body = JSON.stringify(body);
+    try {
+        const res = await fetch(`${API_URL}${endpoint}`, options);
+        if (!res.ok) throw new Error('API Error');
+        return await res.json();
+    } catch (error) {
+        console.error("Backend API Error:", error);
+        throw error;
+    }
+}
 
 // --- BİLEŞENLER ---
 
@@ -553,8 +556,7 @@ function App() {
     const [userPieBalance, setUserPieBalance] = useState(0); 
     const [userTonBalance, setUserTonBalance] = useState(0);
     const [userInventory, setUserInventory] = useState([]);
-    const walletAddress = userFriendlyAddress || "0xDisconnected"; 
-
+    
     const [activeTab, setActiveTab] = useState('Menu'); 
     const [showGetPieModal, setShowGetPieModal] = useState(false);
     const [showSocialsModal, setShowSocialsModal] = useState(false);
@@ -604,65 +606,52 @@ function App() {
         return () => { document.body.style.overflow = ''; };
     }, [isAnyModalOpen]);
 
-    // --- DATA FETCHING (BAĞIMSIZ/PARALEL) ---
-
-    // 1. Sadece TON Bakiyesi (TON Center V2 - POST)
-    const fetchTonBalance = async () => {
+    // --- DATA FETCHING (TONAPI) ---
+    
+    const fetchAllData = async () => {
         if (!userFriendlyAddress) return;
+
+        // Header (Varsa ekle)
+        const headers = TONAPI_KEY ? { 'Authorization': `Bearer ${TONAPI_KEY}` } : {};
+
+        // 1. TON & PIE BAKİYESİ (TonAPI)
         try {
-            const response = await fetch('https://toncenter.com/api/v2/jsonRPC', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    "id": "1",
-                    "jsonrpc": "2.0",
-                    "method": "getAddressBalance",
-                    "params": { "address": userFriendlyAddress }
-                })
-            });
-            const data = await response.json();
-            if (data.result) {
-                const realTon = parseInt(data.result) / 1000000000;
-                setUserTonBalance(realTon);
+            // TON
+            const tonRes = await fetch(`https://tonapi.io/v2/accounts/${userFriendlyAddress}`, { headers });
+            if (tonRes.ok) {
+                const tonData = await tonRes.json();
+                if (tonData && tonData.balance) {
+                    setUserTonBalance(parseInt(tonData.balance) / 1000000000);
+                }
+            }
+
+            // PIE
+            const jettonRes = await fetch(`https://tonapi.io/v2/accounts/${userFriendlyAddress}/jettons`, { headers });
+            if (jettonRes.ok) {
+                const jettonData = await jettonRes.json();
+                if (jettonData && jettonData.balances) {
+                    const pieToken = jettonData.balances.find(
+                        token => token.jetton.address === PIE_TOKEN_CONTRACT
+                    );
+                    if (pieToken) {
+                        const decimals = pieToken.jetton.decimals || 9;
+                        const rawBalance = parseFloat(pieToken.balance);
+                        setUserPieBalance(rawBalance / Math.pow(10, decimals));
+                    } else {
+                        setUserPieBalance(0);
+                    }
+                }
             }
         } catch (e) { 
-            console.error("TON Fetch Error:", e); 
+            console.error("TonAPI Fetch Error:", e); 
         }
-    };
 
-    // 2. Sadece PIE Bakiyesi (TON Center V3 - GET)
-    const fetchPieBalance = async () => {
-        if (!userFriendlyAddress) return;
-        try {
-            // V3 API: Wallet bilgilerini ve Jetton bakiyelerini getirir.
-            const jettonRes = await fetch(
-                `https://toncenter.com/api/v3/jetton/wallets?owner_address=${userFriendlyAddress}&jetton_address=${PIE_TOKEN_CONTRACT}&limit=1&offset=0`
-            );
-            const jettonData = await jettonRes.json();
-
-            if (jettonData && jettonData.items && jettonData.items.length > 0) {
-                const item = jettonData.items[0];
-                const decimals = parseInt(item.jetton.decimals) || 9;
-                const rawBalance = parseFloat(item.balance);
-                const formattedPie = rawBalance / Math.pow(10, decimals);
-                setUserPieBalance(formattedPie);
-            } else {
-                setUserPieBalance(0);
-            }
-        } catch (e) { 
-            console.error("PIE Token Fetch Error:", e); 
-        }
-    };
-
-    // 3. Envanter (Backend)
-    const fetchBackendData = async () => {
-        if (!userFriendlyAddress) return;
+        // 2. Backend Verisi (Envanter vs)
         try {
             const apiData = await apiCall(`/user/${userFriendlyAddress}`);
             setUserInventory(apiData.inventory);
             setTransactionHistory(apiData.transactions);
         } catch (e) {
-            // Backend yoksa Demo Envanter
             if (userInventory.length === 0) {
                 setUserInventory([
                     { id: 1, name: "Plush Bluppie", item_number: 1, image_url: BLUPPIE_NFT_URL, status: "Owned" },
@@ -672,15 +661,9 @@ function App() {
         }
     };
 
-    const fetchAllData = async () => {
-        // Hepsini paralel ve bağımsız çalıştır
-        await Promise.allSettled([
-            fetchTonBalance(), 
-            fetchPieBalance(), 
-            fetchBackendData(), 
-            fetchMarketplace()
-        ]);
-    };
+    useEffect(() => {
+        fetchAllData();
+    }, [userFriendlyAddress, activeTab]);
 
     const fetchMarketplace = async () => {
         try {
@@ -699,10 +682,6 @@ function App() {
             setMarketplaceListings(list);
         } catch (e) { console.error("Marketplace fetch error", e); }
     };
-
-    useEffect(() => {
-        fetchAllData();
-    }, [userFriendlyAddress, activeTab]);
 
     useEffect(() => {
         fetchMarketplace();
@@ -743,7 +722,7 @@ function App() {
             });
             if(res.status === 'success') {
                 showToast(`SUCCESS: Listed for ${listPrice} ${currency}.`, 'success');
-                fetchBackendData();
+                fetchAllData();
                 handleCloseFullPageViews();
             }
         } catch(e) { showToast("Listing Failed", "error"); }
@@ -754,7 +733,7 @@ function App() {
             const res = await apiCall(`/marketplace/delist/${nftId}`, 'POST');
             if(res.status === 'success') {
                 showToast(`Item #${nftId} delisted.`, 'success');
-                fetchBackendData();
+                fetchAllData();
             }
         } catch(e) { showToast("Delist Failed", "error"); }
     };
@@ -768,7 +747,7 @@ function App() {
             });
             if(res.status === 'success') {
                 showToast(`Acquired NFT!`, 'success');
-                fetchBackendData(); 
+                fetchAllData(); 
                 fetchMarketplace(); 
                 setShowBuyModal(false); 
             }
@@ -786,7 +765,7 @@ function App() {
             if(res.status === 'success') {
                 showToast(`Pack Unlocked! NFT #${res.nft.item_number} added.`, 'success');
                 setPacksSold(prev => prev + 1);
-                fetchBackendData();
+                fetchAllData();
                 setShowNewPackModal(false);
             }
         } catch(e) {
@@ -894,6 +873,7 @@ function App() {
                         </div>
 
                         <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'center' }}>
+                             {/* ORİJİNAL TON CONNECT BUTONU (Disconnect vs her şey bunun içinde) */}
                              <TonConnectButton />
                         </div>
 

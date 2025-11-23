@@ -1,52 +1,56 @@
 import React, { useState, useEffect } from 'react';
-import { TonConnectButton, useTonAddress, useTonWallet } from '@tonconnect/ui-react';
-import WebApp from '@twa-dev/sdk';
-import axios from 'axios';
+import { Icons } from './Icons';
+import './index.css';
 
-// --- ASSETS & CONSTANTS ---
+// --- API AYARLARI ---
+// Vercel'de Environment Variable olarak VITE_API_URL tanımlayabilirsin.
+// Tanımlı değilse localhost:8000'e bağlanır.
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
+// --- YARDIMCI FONKSİYONLAR ---
+async function apiCall(endpoint, method = 'GET', body = null) {
+    const options = {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+    };
+    if (body) options.body = JSON.stringify(body);
+    try {
+        const res = await fetch(`${API_URL}${endpoint}`, options);
+        if (!res.ok) throw new Error('API Error');
+        return await res.json();
+    } catch (error) {
+        console.error("API Fetch Error:", error);
+        throw error;
+    }
+}
+
+// --- SABİTLER ---
 const BLUPPIE_NFT_URL = "https://i.imgur.com/TDukTkX.png"; 
 const BLUM_LOGO_URL = "https://s2.coinmarketcap.com/static/img/coins/200x200/33154.png"; 
 const PIE_LOGO_URL = "https://i.imgur.com/GMjw61v.jpeg"; 
-const TON_LOGO_URL = "https://ton.org/icons/custom/ton_logo.svg";
 const TWITTER_LOGO_URL = "https://pbs.twimg.com/profile_images/1955359038532653056/OSHY3ewP_400x400.jpg";
 const TELEGRAM_LOGO_URL = "https://pbs.twimg.com/profile_images/1183117696730390529/LRDASku7_400x400.jpg";
 const DISCORD_LOGO_URL = "https://pbs.twimg.com/profile_images/1795851438956204032/rLl5Y48q_400x400.jpg";
-
-const PIE_JETTON_MASTER = "EQDgIHYB656hYyTJKh0bdO2ABNAcLXa45wIhJrApgJE8Nhxk"; 
-const TON_API_URL = "https://tonapi.io/v2/accounts"; 
+const TON_LOGO_URL = "https://ton.org/icons/custom/ton_logo.svg"; 
 
 const COMMISSION_PIE = 0.001; 
 const COMMISSION_TON = 0.03;  
 const TOTAL_PACK_SUPPLY = 1000;
+const INITIAL_PACK_SOLD_COUNT = 10; 
 const PACK_PRICE = 3.00; 
-const PIE_USD_PRICE = 0.0000013; 
-const TON_USD_PRICE = 1.50;
 
-const LINK_BLUM_SWAP = "https://t.me/blum/app";
+const PIE_USD_PRICE = 0.0000013; 
+const TON_USD_PRICE = 1.50;      
+
+const LINK_BLUM_SWAP = "https://t.me/blum/app?startapp=memepadjetton_PIE_57LxQ-ref_RTUbazVEYx";
 const LINK_GAME = "https://t.me/BluppieBot"; 
 const SOCIAL_TWITTER = "https://twitter.com/BluppieNFT";
 const SOCIAL_TELEGRAM = "https://t.me/BluppieNFT";
 const SOCIAL_DISCORD = "https://discord.gg/";
 
-// --- ICONS (Restored Full Set from your HTML) ---
-const Icons = {
-    Back: () => <svg className="icon-svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>,
-    Menu: () => <svg className="icon-svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>,
-    Market: () => <svg className="icon-svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/></svg>,
-    Profile: () => <svg className="icon-svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>,
-    Info: () => <svg className="icon-svg" style={{width:16, height:16}} viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>,
-    Close: () => <svg className="icon-svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>,
-    Check: () => <svg className="icon-svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>,
-    History: () => <svg className="icon-svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>,
-    Sort: () => <svg className="icon-svg" style={{width:16, height:16}} viewBox="0 0 24 24" fill="currentColor"><path d="M3 18h6v-2H3v2zM3 6v2h18V6H3zm0 7h12v-2H3v2z"/></svg>,
-    Filter: () => <svg className="icon-svg" style={{width:16, height:16}} viewBox="0 0 24 24" fill="currentColor"><path d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"/></svg>,
-    Stake: () => <svg className="icon-svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L1 21h22L12 2zm0 3.99L19.53 19H4.47L12 5.99zM11 16h2v2h-2zm0-6h2v4h-2z"/></svg>,
-    Friends: () => <svg className="icon-svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
-};
+// --- BİLEŞENLER ---
 
-// --- SUB COMPONENTS (Migrated from HTML) ---
-
-function Toast({ show, message, type }: any) {
+function Toast({ show, message, type }) {
     return (
         <div className={`toast ${show ? 'show' : ''} ${type}`} style={{
             position: 'fixed', top: '20px', left: '50%', transform: show ? 'translate(-50%, 0)' : 'translate(-50%, -150%)',
@@ -59,9 +63,9 @@ function Toast({ show, message, type }: any) {
     );
 }
 
-function InventoryPage({ handleBack, openDetails, inventory, isShowingListings, toggleView }: any) {
-    const ownedNfts = inventory.filter((nft:any) => nft.status === 'Owned');
-    const listedNfts = inventory.filter((nft:any) => nft.status === 'Listed');
+function InventoryPage({ handleBack, openDetails, inventory, isShowingListings, toggleView }) {
+    const ownedNfts = inventory.filter(nft => nft.status === 'Owned');
+    const listedNfts = inventory.filter(nft => nft.status === 'Listed');
     const displayedNfts = isShowingListings ? listedNfts : ownedNfts;
 
     return (
@@ -90,39 +94,47 @@ function InventoryPage({ handleBack, openDetails, inventory, isShowingListings, 
             </div>
 
             <div className="nft-store" style={{ padding: '0 16px', border: 'none', background: 'transparent', boxShadow: 'none' }}>
+                <div style={{ marginBottom: '16px', color: 'var(--color-text-secondary)', fontSize: '14px', fontFamily: 'var(--font-head)' }}>
+                    TOTAL: <strong>{isShowingListings ? 'ON SALE' : 'NFTs'}</strong> ({displayedNfts.length})
+                </div>
+                
                 <div className="item-grid">
-                    {displayedNfts.map((item:any) => (
+                    {displayedNfts.map((item) => (
                         <div key={item.id} className="marketplace-card" onClick={() => openDetails(item)}>
                             <div className="card-image-wrapper">
-                                <img src={item.imageUrl} alt={`${item.name} #${item.itemNumber}`} className="card-image" />
+                                <img src={item.image_url || BLUPPIE_NFT_URL} alt={`${item.name} #${item.item_number}`} className="card-image" />
                             </div>
                             <div style={{ padding: '12px' }}>
                                 <div style={{ fontSize: '14px', color: 'var(--color-text-secondary)', fontWeight: '600', marginBottom: '8px' }}>
-                                    {item.name} <span className="text-neon">#{item.itemNumber}</span>
+                                    {item.name} <span className="text-neon">#{item.item_number}</span>
                                 </div>
                             </div>
                         </div>
                     ))}
                 </div>
-                {displayedNfts.length === 0 && <div className="holo-panel" style={{ textAlign: 'center', color: 'var(--color-text-dim)' }}>EMPTY</div>}
+                {displayedNfts.length === 0 && (
+                    <div className="holo-panel" style={{ textAlign: 'center', color: 'var(--color-text-dim)' }}>
+                            EMPTY
+                    </div>
+                )}
             </div>
         </div>
     );
 }
 
-function ListingPage({ handleBack, inventory, showToast, finalizeListing }: any) {
+function ListingPage({ handleBack, inventory, showToast, finalizeListing }) {
     const [step, setStep] = useState('select'); 
-    const [selectedNft, setSelectedNft] = useState<any>(null);
-    const [listingCurrency, setListingCurrency] = useState<any>(null);
+    const [selectedNft, setSelectedNft] = useState(null);
+    const [listingCurrency, setListingCurrency] = useState(null);
     const [listingPrice, setListingPrice] = useState(''); 
 
     const COMM_RATE = listingCurrency === 'TON' ? COMMISSION_TON : COMMISSION_PIE;
-    const numericPrice = parseFloat(listingPrice || '0');
+    const numericPrice = parseFloat(listingPrice || 0);
     const buyerPays = numericPrice;
     const commissionAmount = buyerPays * COMM_RATE;
     const sellerReceives = buyerPays - commissionAmount;
     
-    const handleSelectNft = (nft:any) => {
+    const handleSelectNft = (nft) => {
         setSelectedNft(nft);
         setListingCurrency(null); 
         setListingPrice(''); 
@@ -134,7 +146,7 @@ function ListingPage({ handleBack, inventory, showToast, finalizeListing }: any)
         finalizeListing(selectedNft.id, buyerPays.toFixed(4), listingCurrency);
     };
 
-    const renderHeader = (title: string) => (
+    const renderHeader = (title) => (
         <div className="holo-panel" style={{ display: 'flex', alignItems: 'center', padding: '15px', borderRadius: '0 0 24px 24px', borderTop: 'none', marginTop: '-16px' }}>
             <button 
                 onClick={() => {
@@ -154,16 +166,16 @@ function ListingPage({ handleBack, inventory, showToast, finalizeListing }: any)
     const renderStepSelect = () => (
         <div style={{ padding: '0 16px' }}>
             <div style={{ marginBottom: '16px', color: 'var(--color-text-secondary)', fontSize: '14px', fontFamily: 'var(--font-head)' }}>
-                 SELECT NFT FOR UPLOAD
+                    SELECT NFT FOR UPLOAD
             </div>
             <div className="item-grid">
-                {inventory.map((item:any) => (
+                {inventory.map((item) => (
                     <div key={item.id} className="marketplace-card" onClick={() => handleSelectNft(item)}>
                         <div className="card-image-wrapper">
-                            <img src={item.imageUrl} alt={`${item.name} #${item.itemNumber}`} className="card-image" />
+                            <img src={item.image_url || BLUPPIE_NFT_URL} alt={`${item.name} #${item.item_number}`} className="card-image" />
                         </div>
                         <div style={{ padding: '10px' }}>
-                            <div style={{ fontSize: '14px', color: 'var(--color-text-primary)', fontWeight: '600' }}>{item.name} #{item.itemNumber}</div>
+                            <div style={{ fontSize: '14px', color: 'var(--color-text-primary)', fontWeight: '600' }}>{item.name} #{item.item_number}</div>
                             <button className="cta-btn secondary" style={{ marginTop: '10px', padding: '8px', fontSize: '12px' }}>SELECT</button>
                         </div>
                     </div>
@@ -177,7 +189,7 @@ function ListingPage({ handleBack, inventory, showToast, finalizeListing }: any)
         <div style={{ padding: '0 16px' }}>
             <div className="holo-panel">
                 <div style={{ fontWeight: '700', marginBottom: '20px', fontFamily: 'var(--font-head)', fontSize: '18px' }}>
-                    NFT: <span className="text-neon">{selectedNft.name} #{selectedNft.itemNumber}</span>
+                    NFT: <span className="text-neon">{selectedNft.name} #{selectedNft.item_number}</span>
                 </div>
                 <div style={{ marginBottom: '15px', color: 'var(--color-text-secondary)' }}>SELECT LISTING CURRENCY:</div>
 
@@ -204,7 +216,7 @@ function ListingPage({ handleBack, inventory, showToast, finalizeListing }: any)
         <div style={{ padding: '0 16px' }}>
             <div className="holo-panel">
                 <div style={{ fontWeight: '700', marginBottom: '20px', fontFamily: 'var(--font-head)' }}>
-                    LISTING: <span className="text-neon">{selectedNft.name} #{selectedNft.itemNumber}</span> in {listingCurrency}
+                    LISTING: <span className="text-neon">{selectedNft.name} #{selectedNft.item_number}</span> in {listingCurrency}
                 </div>
 
                 <div style={{ marginBottom: '20px' }}>
@@ -220,18 +232,18 @@ function ListingPage({ handleBack, inventory, showToast, finalizeListing }: any)
                 </div>
 
                 <div style={{ padding: '15px', background: 'rgba(0,0,0,0.3)', borderRadius: '12px', border: '1px solid var(--color-glass-border)' }}>
-                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px' }}>
                         <span>Buyer Pays:</span>
-                        <span className="text-neon">{buyerPays.toLocaleString('en-US')} {listingCurrency}</span>
+                        <span className="text-neon">{buyerPays.toLocaleString('en-US', {maximumFractionDigits: 4})} {listingCurrency}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px' }}>
                         <span>Fee:</span>
-                        <span style={{ color: 'var(--neon-red)' }}>- {commissionAmount.toLocaleString('en-US')} {listingCurrency}</span>
+                        <span style={{ color: 'var(--neon-red)' }}>- {commissionAmount.toLocaleString('en-US', {maximumFractionDigits: 4})} {listingCurrency}</span>
                     </div>
                     <hr style={{ borderColor: 'var(--color-glass-border)', margin: '10px 0' }} />
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '18px', fontFamily: 'var(--font-head)' }}>
                         <span>You Receive</span>
-                        <span className="text-green">{sellerReceives.toLocaleString('en-US')} {listingCurrency}</span>
+                        <span className="text-green">{sellerReceives.toLocaleString('en-US', {maximumFractionDigits: 4})} {listingCurrency}</span>
                     </div>
                 </div>
 
@@ -251,29 +263,295 @@ function ListingPage({ handleBack, inventory, showToast, finalizeListing }: any)
     return <div className="container" style={{ padding: '0' }}>{renderHeader(title)}{step === 'select' ? renderStepSelect() : step === 'currency' ? renderStepCurrency() : renderStepPrice()}</div>;
 }
 
-// --- APP COMPONENT ---
+function InventoryDetailModal({ show, onClose, nft, showToast, isListed, deList }) {
+    if (!show || !nft) return null;
+    const [recipientAddress, setRecipientAddress] = useState('');
+    const [isTransferring, setIsTransferring] = useState(false);
+
+    const handleTransfer = async () => {
+        if (!recipientAddress || recipientAddress.length < 10) {
+            showToast("Invalid address!", 'error');
+            return;
+        }
+        setIsTransferring(true);
+        // Demo transfer
+        await new Promise(resolve => setTimeout(resolve, 1500)); 
+        showToast(`TRANSFER COMPLETE: ${nft.name} #${nft.item_number} sent!`, 'success');
+        setIsTransferring(false);
+        onClose();
+    };
+    
+    return (
+        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} onClick={onClose}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: '480px', padding: '24px' }}>
+                <button onClick={onClose} style={{ position: 'absolute', top: 16, right: 16, background: 'none', border: 'none', color: 'var(--color-text-secondary)', cursor:'pointer' }}><Icons.Close /></button>
+                
+                <div style={{ textAlign: 'center', marginBottom: '10px' }}>
+                    <h3 className="modal-title" style={{fontSize: 22, color: 'var(--neon-cyan)'}}>{nft.name} <span style={{color:'#fff'}}>#{nft.item_number}</span></h3>
+                    <div style={{ color: 'var(--color-text-secondary)', fontSize: '12px', letterSpacing: '1px' }}>// NFT DETAILS</div>
+                </div>
+
+                <div style={{ textAlign: 'center', marginBottom: '20px', border: '1px solid var(--neon-purple)', borderRadius: '16px', padding: '4px', boxShadow: '0 0 15px rgba(188,19,254,0.1)' }}>
+                    <img src={nft.image_url || BLUPPIE_NFT_URL} style={{ width: '100%', height: '180px', objectFit: 'contain', borderRadius: '12px' }} />
+                </div>
+
+                {isListed && (
+                    <div className="holo-panel" style={{ padding: '15px', marginBottom: '20px', background: 'rgba(255,255,255,0.02)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--neon-cyan)' }}>
+                            <span>PRICE:</span>
+                            <span style={{fontFamily: 'var(--font-head)', fontSize: 18}}>{nft.price} {nft.currency || 'TON'}</span>
+                        </div>
+                    </div>
+                )}
+                
+                {isListed && (
+                    <button className="cta-btn" onClick={() => { deList(nft.id); onClose(); }} style={{ background: 'rgba(255,0,85,0.2)', border: '1px solid #ff0055', color: '#ff0055', marginBottom: '15px' }}>
+                        REMOVE FROM MARKETPLACE
+                    </button>
+                )}
+
+                <div style={{ borderTop: '1px solid var(--color-glass-border)', paddingTop: '15px', marginBottom: '15px' }}>
+                    <h4 style={{ marginBottom: '10px', fontSize: '14px', color: 'var(--color-text-secondary)' }}>TRANSFER OWNERSHIP</h4>
+                    <input type="text" placeholder="Recipient Address (0x...)" value={recipientAddress} onChange={(e) => setRecipientAddress(e.target.value)} style={{marginBottom: '10px'}} />
+                    <button className="cta-btn secondary" onClick={handleTransfer} disabled={!recipientAddress || isTransferring}>
+                        {isTransferring ? 'TRANSFERRING...' : 'TRANSFER'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function NewPackModal({ show, onClose, showToast, handlePackPurchase, packsSold, userBalance }) {
+    if (!show) return null;
+    const remaining = TOTAL_PACK_SUPPLY - packsSold; 
+    const progressPercent = (packsSold / TOTAL_PACK_SUPPLY) * 100; 
+    const canAfford = userBalance >= PACK_PRICE;
+
+    const handlePurchase = () => {
+        if (!canAfford) { showToast(`INSUFFICIENT CREDITS: ${PACK_PRICE.toFixed(2)} TON required.`, 'error'); return; }
+        handlePackPurchase(); 
+    };
+
+    return (
+        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={onClose}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ width: '90%', maxWidth: '400px', borderRadius: '24px', padding: '24px', border: '1px solid var(--neon-cyan)', boxShadow: '0 0 30px rgba(0,243,255,0.2)' }}>
+                <button onClick={onClose} style={{ position: 'absolute', top: 16, right: 16, background: 'none', border: 'none', color: '#fff', cursor:'pointer' }}><Icons.Close /></button>
+                
+                <div style={{ textAlign: 'center' }}>
+                    <h2 className="text-neon" style={{fontSize: '24px', marginBottom: '5px'}}>Plush Bluppie Package</h2>
+                    <div className="text-dim" style={{fontSize: '12px', letterSpacing: '2px', marginBottom: '20px'}}>LIMITED NFT</div>
+                </div>
+
+                <div style={{ textAlign: 'center', marginBottom: '20px', position: 'relative' }}>
+                    <div style={{ position: 'absolute', inset: '0', background: 'radial-gradient(circle, rgba(0,243,255,0.2) 0%, rgba(0,0,0,0) 70%)', zIndex: 0 }}></div>
+                    <img src={BLUPPIE_NFT_URL} style={{ width: '160px', height: '160px', position: 'relative', zIndex: 1, filter: 'drop-shadow(0 0 10px rgba(0,243,255,0.5))' }} />
+                </div>
+                
+                <div style={{ marginBottom: '20px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--color-text-secondary)', marginBottom: '6px' }}>
+                        <span>MINT PROGRESS</span>
+                        <span className="text-neon">{progressPercent.toFixed(1)}%</span>
+                    </div>
+                    <div style={{ height: '6px', background: '#111', borderRadius: '3px', overflow: 'hidden', border: '1px solid #333' }}>
+                        <div style={{ width: `${progressPercent}%`, height: '100%', background: 'var(--neon-cyan)', boxShadow: '0 0 10px var(--neon-cyan)' }} />
+                    </div>
+                    <div style={{ textAlign: 'center', fontSize: '12px', marginTop: '5px', color: '#fff' }}>
+                        {packsSold} / {TOTAL_PACK_SUPPLY} MINTED
+                    </div>
+                </div>
+
+                <div className="holo-panel" style={{ padding: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                    <span style={{fontFamily: 'var(--font-head)', fontSize: '18px'}}>COST:</span>
+                    <div style={{ fontSize: '24px', fontWeight: '700', color: 'var(--neon-cyan)', display: 'flex', alignItems: 'center', fontFamily: 'var(--font-head)' }}>
+                            <img src={TON_LOGO_URL} style={{ width: '24px', marginRight: '8px' }} />
+                            {PACK_PRICE.toFixed(2)}
+                    </div>
+                </div>
+                
+                <button className="cta-btn" onClick={handlePurchase} disabled={!canAfford}>
+                    {canAfford ? 'MINT' : 'INSUFFICIENT FUNDS'}
+                </button>
+            </div>
+        </div>
+    );
+}
+
+function BuyModal({ show, onClose, nft, currentCurrency, showToast, handlePurchase, tonBalance, pieBalance }) {
+    if (!show || !nft) return null;
+    
+    const listPriceTON = nft.price;
+    const TON_TO_PIE_RATE = TON_USD_PRICE / PIE_USD_PRICE;
+    
+    const isTon = currentCurrency === 'TON';
+    const price = isTon ? listPriceTON : (listPriceTON * TON_TO_PIE_RATE); 
+    const balanceToCheck = isTon ? tonBalance : pieBalance;
+    const canAfford = balanceToCheck >= price; 
+    const currencyLogo = isTon ? TON_LOGO_URL : PIE_LOGO_URL;
+
+    const handleConfirmBuy = async () => {
+        if (!canAfford) { showToast(`ERROR: Insufficient funds.`, 'error'); return; }
+        handlePurchase(nft.id, price, currentCurrency);
+    };
+
+    return (
+        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} onClick={onClose}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: '480px', padding: '24px' }}>
+                <button onClick={onClose} style={{ position: 'absolute', top: 16, right: 16, background: 'none', border: 'none', color: '#fff' }}><Icons.Close /></button>
+                <div style={{ textAlign: 'center', marginBottom: 20 }}>
+                    <div className="modal-title text-neon" style={{fontSize: 20}}>BUY NFT</div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '15px', marginBottom: '20px' }}>
+                    <img src={nft.image_url || BLUPPIE_NFT_URL} style={{ width: '80px', height: '80px', borderRadius: '12px', border: '1px solid var(--color-glass-border)' }} />
+                    <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                        <div style={{ fontSize: '18px', fontFamily: 'var(--font-head)', fontWeight: '700' }}>{nft.name}</div>
+                        <div className="text-neon">#{nft.item_number}</div>
+                    </div>
+                </div>
+
+                <div className="holo-panel" style={{ padding: '15px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', fontSize: '16px' }}>
+                        <span className="text-dim">TOTAL COST:</span>
+                        <div style={{ fontWeight: '700', display: 'flex', alignItems: 'center', color: '#fff' }}>
+                            <img src={currencyLogo} style={{ width: '16px', marginRight: '5px' }} />
+                            {price.toLocaleString('en-US', {maximumFractionDigits: 4})} {currentCurrency}
+                        </div>
+                    </div>
+                    <div style={{ height: 1, background: 'var(--color-glass-border)', margin: '10px 0' }}></div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
+                        <span className="text-dim">WALLET BALANCE:</span>
+                        <span className={canAfford ? 'text-green' : 'text-neon'}>{balanceToCheck.toFixed(2)} {currentCurrency}</span>
+                    </div>
+                </div>
+                
+                <button className="cta-btn" onClick={handleConfirmBuy} disabled={!canAfford}>
+                    {canAfford ? 'CONFIRM BUY' : 'INSUFFICIENT FUNDS'}
+                </button>
+            </div>
+        </div>
+    );
+}
+
+function BalanceTooltipModal({ show, onClose, usd, pie, price }) {
+    if (!show) return null;
+    return (
+        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={onClose}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ width: '90%', maxWidth: '350px', borderRadius: '16px', padding: '20px' }}>
+                <h3 className="modal-title" style={{fontSize: 18, marginBottom: 15, color: 'var(--neon-cyan)'}}>ASSET VALUATION</h3>
+                <div style={{ fontSize: '14px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between' }}>
+                    <span className="text-dim">Holding:</span> <span className="text-neon">{pie} PIE</span>
+                </div>
+                <div style={{ fontSize: '14px', marginBottom: '15px', display: 'flex', justifyContent: 'space-between' }}>
+                    <span className="text-dim">Market Price:</span> <span>${price}</span>
+                </div>
+                <div style={{ borderTop: '1px solid var(--color-glass-border)', paddingTop: '10px', display: 'flex', justifyContent: 'space-between', fontSize: '18px', fontFamily: 'var(--font-head)', fontWeight: '700' }}>
+                    <span>TOTAL</span> <span>${usd}</span>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function StakingPage({ handleBack, pieBalance, showToast }) {
+    const [stakeAmount, setStakeAmount] = useState('');
+    // pieBalance string gelebilir, onu parse et
+    const numericPieBalance = parseFloat(typeof pieBalance === 'string' ? pieBalance.replace(/,/g, '') : pieBalance);
+    const amount = parseFloat(stakeAmount);
+    const dailyEarnings = amount * (1.20 / 365);
+
+    const handleStake = () => {
+        if (isNaN(amount) || amount <= 0) { showToast("Invalid input.", 'error'); return; }
+        if (amount > numericPieBalance) { showToast("Insufficient funds.", 'error'); return; }
+        showToast(`LOCKED: ${amount.toLocaleString()} $PIE into stake pool!`, 'success');
+        setStakeAmount('');
+    };
+
+    return (
+        <div className="container" style={{ padding: '0' }}>
+            <div className="holo-panel" style={{ display: 'flex', alignItems: 'center', padding: '15px', borderRadius: '0 0 24px 24px', borderTop: 'none', marginTop: '-16px' }}>
+                <button onClick={handleBack} style={{ background: 'none', border: 'none', color: 'var(--neon-cyan)' }}><Icons.Back /></button>
+                <h2 style={{ flexGrow: 1, textAlign: 'center', margin: 0, fontSize: '20px' }}>Staking</h2>
+                <div style={{ width: 24 }}></div>
+            </div>
+
+            <div className="holo-panel pulse-glow">
+                <div className="nft-title" style={{ marginBottom: '20px', justifyContent: 'center' }}> POOL METRICS</div>
+                <div style={{ display: 'flex', justifyContent: 'space-around', textAlign: 'center' }}>
+                    <div>
+                        <div className="text-dim" style={{fontSize: 12}}>TVL</div>
+                        <div className="text-neon" style={{fontFamily: 'var(--font-head)', fontSize: 20, fontWeight: 700}}>200M $PIE</div>
+                    </div>
+                    <div>
+                        <div className="text-dim" style={{fontSize: 12}}>APY</div>
+                        <div className="text-green" style={{fontFamily: 'var(--font-head)', fontSize: 20, fontWeight: 700}}>120%</div>
+                    </div>
+                </div>
+            </div>
+
+            <div className="holo-panel">
+                <div className="nft-title" style={{fontSize: 16}}>MY STAKE</div>
+                <div style={{ marginBottom: '15px', fontSize: '14px' }} className="text-dim">
+                    AVAILABLE: <strong className="text-white">{pieBalance} $PIE</strong>
+                </div>
+                <input
+                    type="number"
+                    placeholder="Amount to Stake"
+                    value={stakeAmount}
+                    onChange={(e) => setStakeAmount(e.target.value)}
+                    style={{ marginBottom: '15px' }}
+                />
+                {amount > 0 && !isNaN(amount) && (
+                    <div style={{ padding: '10px', background: 'rgba(0,255,157,0.1)', borderRadius: '8px', border: '1px solid var(--neon-green)', marginBottom: '15px', fontSize: '14px' }}>
+                        {/* FIXED: Formatted Number */}
+                        Est. Daily Yield: <strong className="text-green">+{dailyEarnings.toLocaleString('en-US', {maximumFractionDigits: 2})} $PIE</strong>
+                    </div>
+                )}
+                <button className="cta-btn" onClick={handleStake}>STAKE</button>
+            </div>
+        </div>
+    );
+}
+
+function TransactionHistoryPage({ handleBack, history }) {
+    return (
+        <div className="container" style={{ padding: '0' }}>
+            <div className="holo-panel" style={{ display: 'flex', alignItems: 'center', padding: '15px', borderRadius: '0 0 24px 24px', borderTop: 'none', marginTop: '-16px' }}>
+                <button onClick={handleBack} style={{ background: 'none', border: 'none', color: 'var(--neon-cyan)' }}><Icons.Back /></button>
+                <h2 style={{ flexGrow: 1, textAlign: 'center', margin: 0, fontSize: '20px' }}>My Transactions</h2>
+                <div style={{ width: 24 }}></div>
+            </div>
+            
+            <div style={{ padding: '0 16px' }}>
+                {history.map((tx) => (
+                    <div key={tx.id} className="holo-panel" style={{ padding: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                        <div>
+                            <div style={{ fontWeight: '700', color: '#fff', fontFamily: 'var(--font-head)' }}>
+                                <span style={{ color: tx.type.includes('Buy') ? 'var(--neon-red)' : 'var(--neon-green)' }}>{tx.type.toUpperCase()}</span>
+                            </div>
+                            <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginTop: '4px' }}>{tx.item_name}</div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                            {tx.amount !== 'N/A' && <div className="text-neon">{tx.amount} {tx.currency}</div>}
+                            <div style={{ fontSize: '10px', opacity: 0.5 }}>{tx.status}</div>
+                        </div>
+                    </div>
+                ))}
+                {history.length === 0 && <div style={{ textAlign: 'center', color: 'var(--color-text-dim)' }}>LOG EMPTY</div>}
+            </div>
+        </div>
+    );
+}
+
+// --- MAIN APP ---
 
 function App() {
-    // -- REAL BACKEND DATA --
-    const userFriendlyAddress = useTonAddress();
-    const wallet = useTonWallet();
-    const [userData, setUserData] = useState<any>(null);
-    const [userPieBalance, setUserPieBalance] = useState<string>('0.00');
-    const [isLoading, setIsLoading] = useState(false);
-
-    // -- APP STATE --
-    const [userInventory, setUserInventory] = useState([
-        { id: 1, name: "Plush Bluppie", itemNumber: 1, imageUrl: BLUPPIE_NFT_URL, status: "Owned" },
-        { id: 2, name: "Plush Bluppie", itemNumber: 10, imageUrl: BLUPPIE_NFT_URL, status: "Owned" },
-    ]);
-    const [marketplaceListings, setMarketplaceListings] = useState([
-        { id: 875, price: 42.85, imageUrl: BLUPPIE_NFT_URL, name: "Plush Bluppie" },
-        { id: 967, price: 42.90, imageUrl: BLUPPIE_NFT_URL, name: "Plush Bluppie" },
-        { id: 279, price: 42.95, imageUrl: BLUPPIE_NFT_URL, name: "Plush Bluppie" },
-        { id: 767, price: 43.00, imageUrl: BLUPPIE_NFT_URL, name: "Plush Bluppie" },
-    ]);
-    
+    const [userPieBalance, setUserPieBalance] = useState(0); 
+    const [userTonBalance, setUserTonBalance] = useState(0);
+    const [userInventory, setUserInventory] = useState([]);
+    const [walletAddress, setWalletAddress] = useState("UQC0GE6N…BP3HFsE_"); // Varsayılan Demo Adres
     const [activeTab, setActiveTab] = useState('Menu'); 
+    
     const [showGetPieModal, setShowGetPieModal] = useState(false);
     const [showSocialsModal, setShowSocialsModal] = useState(false);
     const [showStakingPage, setShowStakingPage] = useState(false); 
@@ -282,59 +560,84 @@ function App() {
     const [showNewPackModal, setShowNewPackModal] = useState(false);
     const [showBalanceTooltip, setShowBalanceTooltip] = useState(false);
     const [showBuyModal, setShowBuyModal] = useState(false);
-    const [selectedNFTToBuy, setSelectedNFTToBuy] = useState<any>(null);
+    const [selectedNFTToBuy, setSelectedNFTToBuy] = useState(null);
     const [showInventoryPage, setShowInventoryPage] = useState(false);
     const [showListingPage, setShowListingPage] = useState(false);
     const [showInventoryDetail, setShowInventoryDetail] = useState(false);
-    const [selectedInventoryNft, setSelectedInventoryNft] = useState<any>(null);
+    const [selectedInventoryNft, setSelectedInventoryNft] = useState(null);
     const [isInventoryShowingListings, setIsInventoryShowingListings] = useState(false); 
     const [showTransactionHistoryPage, setShowTransactionHistoryPage] = useState(false); 
 
     const [currentSort, setCurrentSort] = useState('Price: Ascending');
     const [currentCurrency, setCurrentCurrency] = useState('TON');
+    const [marketplaceListings, setMarketplaceListings] = useState([]);
     const [marketplaceSearch, setMarketplaceSearch] = useState('');
     const [packsSold, setPacksSold] = useState(10);
+    const [transactionHistory, setTransactionHistory] = useState([]);
     const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
-    // --- INIT ---
+    // --- EFFECT: Disable Context Menu ---
     useEffect(() => {
-        WebApp.ready();
-        WebApp.expand();
-        if (WebApp.initDataUnsafe.user) {
-            setUserData(WebApp.initDataUnsafe.user);
-        } else {
-            setUserData({ first_name: "Vibe", username: "Coder", photo_url: BLUPPIE_NFT_URL });
-        }
-        
-        const handleContextMenu = (e: Event) => e.preventDefault();
+        const handleContextMenu = (e) => e.preventDefault();
         document.addEventListener('contextmenu', handleContextMenu);
         return () => document.removeEventListener('contextmenu', handleContextMenu);
     }, []);
 
-    // --- FETCH REAL BALANCE ---
-    const fetchPieBalance = async () => {
-        if (!userFriendlyAddress) return;
-        setIsLoading(true);
+    // --- EFFECT: Scroll Lock ---
+    const isAnyModalOpen = 
+        showGetPieModal || showSocialsModal || showSortModal || showFilterModal || 
+        showNewPackModal || showBalanceTooltip || showBuyModal || showInventoryDetail;
+
+    useEffect(() => {
+        if (isAnyModalOpen) { document.body.style.overflow = 'hidden'; } 
+        else { document.body.style.overflow = ''; }
+        return () => { document.body.style.overflow = ''; };
+    }, [isAnyModalOpen]);
+
+    // --- DATA FETCHING (BACKEND) ---
+    const fetchUserData = async () => {
         try {
-            const response = await axios.get(`${TON_API_URL}/${userFriendlyAddress}/jettons/${PIE_JETTON_MASTER}`);
-            const rawBalance = response.data.balance;
-            const decimals = response.data.jetton.decimals || 9;
-            const formatted = (Number(rawBalance) / Math.pow(10, decimals)).toLocaleString('en-US', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-            });
-            setUserPieBalance(formatted);
-        } catch (error) {
-            setUserPieBalance("0.00");
-        } finally {
-            setIsLoading(false);
+            const data = await apiCall(`/user/${walletAddress}`);
+            setUserPieBalance(data.balance_pie);
+            setUserTonBalance(data.balance_ton);
+            setUserInventory(data.inventory);
+            setTransactionHistory(data.transactions);
+        } catch (e) {
+            console.error("User data fetch error", e);
+            // Hata durumunda (Backend yoksa) demo veri gösterilebilir veya hata basılabilir.
         }
     };
 
-    useEffect(() => { if (userFriendlyAddress) fetchPieBalance(); }, [userFriendlyAddress]);
+    const fetchMarketplace = async () => {
+        try {
+            const data = await apiCall(`/marketplace/${walletAddress}`);
+            // Sorting Logic
+            let list = data;
+            if(marketplaceSearch) {
+                list = list.filter(item => item.name.toLowerCase().includes(marketplaceSearch.toLowerCase()) || item.item_number.toString().includes(marketplaceSearch));
+            }
+            list.sort((a, b) => {
+                if (currentSort === 'Price: Ascending') return a.price - b.price;
+                if (currentSort === 'Price: Descending') return b.price - a.price;
+                if (currentSort === 'Number: Ascending') return a.item_number - b.item_number; 
+                if (currentSort === 'Number: Descending') return b.item_number - a.item_number; 
+                return 0;
+            });
+            setMarketplaceListings(list);
+        } catch (e) { console.error("Marketplace fetch error", e); }
+    };
 
-    // --- HELPER LOGIC ---
-    const showToastMessage = (message: string, type = 'success') => {
+    useEffect(() => {
+        fetchUserData();
+        fetchMarketplace();
+    }, [walletAddress, activeTab, currentSort, marketplaceSearch]);
+
+    // --- ACTIONS ---
+
+    const currentUSDValue = (userPieBalance * PIE_USD_PRICE).toFixed(2);
+    const formattedPieBalance = userPieBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    const showToast = (message, type = 'success') => {
         setToast({ show: true, message, type });
         setTimeout(() => setToast(prev => ({ ...prev, show: false })), 3000);
     };
@@ -345,107 +648,94 @@ function App() {
         setShowInventoryDetail(false);
         setShowStakingPage(false); 
         setShowTransactionHistoryPage(false); 
-        setShowBuyModal(false);
     };
-
-    const handleNavClick = (tab: string) => {
+    
+    const handleNavClick = (tab) => {
         handleCloseFullPageViews();
+        setShowBuyModal(false); 
         setActiveTab(tab);
     };
 
-    // --- MOCKED TRANSACTIONS (Since we don't have Smart Contract Write Access yet) ---
-    const handlePackPurchase = () => {
-        setPacksSold(prev => prev + 1);
-        const newItem = { id: Date.now(), name: "Plush Bluppie", itemNumber: packsSold + 1, imageUrl: BLUPPIE_NFT_URL, status: "Owned" };
-        setUserInventory(prev => [...prev, newItem]);
-        setShowNewPackModal(false);
-        showToastMessage("Pack Unlocked! NFT added.", 'success');
+    const handleFinalizeListing = async (listedNftId, listPrice, currency) => {
+        try {
+            const res = await apiCall('/marketplace/list', 'POST', {
+                nft_id: listedNftId,
+                price: parseFloat(listPrice),
+                currency: currency
+            });
+            if(res.status === 'success') {
+                showToast(`SUCCESS: Listed for ${listPrice} ${currency}.`, 'success');
+                fetchUserData();
+                handleCloseFullPageViews();
+            }
+        } catch(e) { showToast("Listing Failed", "error"); }
     };
 
-    const handleFinalizeListing = (id: number, price: string, currency: string) => {
-        setUserInventory(prev => prev.map(nft => nft.id === id ? { ...nft, status: 'Listed', price, currency } : nft));
-        showToastMessage(`Listed for ${price} ${currency}`, 'success');
-        handleCloseFullPageViews();
+    const handleDeList = async (nftId) => {
+        try {
+            const res = await apiCall(`/marketplace/delist/${nftId}`, 'POST');
+            if(res.status === 'success') {
+                showToast(`Item #${nftId} delisted.`, 'success');
+                fetchUserData();
+            }
+        } catch(e) { showToast("Delist Failed", "error"); }
     };
-
-    const handlePurchase = (nftId: number, price: number, currency: string) => {
-        // Logic to move item from Market to Inventory
-        const item = marketplaceListings.find(i => i.id === nftId);
-        if(item) {
-            setUserInventory(prev => [...prev, {...item, status: 'Owned', itemNumber: item.id}]);
-            setMarketplaceListings(prev => prev.filter(i => i.id !== nftId));
-            showToastMessage('Purchase Successful', 'success');
-            setShowBuyModal(false);
+    
+    const handlePurchase = async (nftId, price, currency) => {
+        try {
+            const res = await apiCall('/marketplace/buy', 'POST', {
+                nft_id: nftId,
+                buyer_address: walletAddress
+            });
+            if(res.status === 'success') {
+                showToast(`Acquired NFT!`, 'success');
+                fetchUserData(); 
+                fetchMarketplace(); 
+                setShowBuyModal(false); 
+            }
+        } catch (e) {
+            showToast('Transaction Failed or Insufficient Funds', 'error');
+        }
+    };
+    
+    const handlePackPurchase = async () => {
+        try {
+            const res = await apiCall('/packs/buy', 'POST', {
+                wallet_address: walletAddress
+            });
+            if(res.status === 'success') {
+                showToast(`Pack Unlocked! NFT #${res.nft.item_number} added.`, 'success');
+                setPacksSold(prev => prev + 1);
+                fetchUserData();
+                setShowNewPackModal(false);
+            }
+        } catch(e) {
+            showToast('Purchase Failed or Insufficient Funds', 'error');
         }
     };
 
-    // --- RENDER CONTENT ---
     const renderContent = () => {
-        // 1. SUB PAGES
-        if (showInventoryPage) return <InventoryPage handleBack={handleCloseFullPageViews} openDetails={(nft:any)=>{setSelectedInventoryNft(nft); setShowInventoryDetail(true);}} inventory={userInventory} isShowingListings={isInventoryShowingListings} toggleView={setIsInventoryShowingListings} />;
-        if (showListingPage) return <ListingPage handleBack={handleCloseFullPageViews} inventory={userInventory.filter(nft => nft.status === 'Owned')} showToast={showToastMessage} finalizeListing={handleFinalizeListing} />;
+        if (showInventoryPage) return <InventoryPage handleBack={handleCloseFullPageViews} openDetails={(nft)=>{setSelectedInventoryNft(nft); setShowInventoryDetail(true);}} inventory={userInventory} isShowingListings={isInventoryShowingListings} toggleView={setIsInventoryShowingListings} />;
+        if (showListingPage) return <ListingPage handleBack={handleCloseFullPageViews} inventory={userInventory.filter(nft => nft.status === 'Owned')} showToast={showToast} finalizeListing={handleFinalizeListing} />;
+        if (showStakingPage) return <StakingPage handleBack={handleCloseFullPageViews} pieBalance={formattedPieBalance} showToast={showToast} />;
+        if (showTransactionHistoryPage) return <TransactionHistoryPage handleBack={handleCloseFullPageViews} history={transactionHistory} />;
         
-        // 2. STAKING PAGE (Restored)
-        if (showStakingPage) {
-            const dailyEarnings = 123.45; // Mock calc
-            return (
-                <div className="container" style={{ padding: '0' }}>
-                    <div className="holo-panel" style={{ display: 'flex', alignItems: 'center', padding: '15px', borderRadius: '0 0 24px 24px', borderTop: 'none', marginTop: '-16px' }}>
-                        <button onClick={handleCloseFullPageViews} style={{ background: 'none', border: 'none', color: 'var(--neon-cyan)' }}><Icons.Back /></button>
-                        <h2 style={{ flexGrow: 1, textAlign: 'center', margin: 0, fontSize: '20px' }}>Staking</h2>
-                        <div style={{ width: 24 }}></div>
-                    </div>
-                    <div className="holo-panel pulse-glow" style={{textAlign:'center', padding:30}}>
-                        <div className="text-dim">APY</div>
-                        <div className="text-neon" style={{fontSize:40, fontWeight:800}}>120%</div>
-                        <div className="text-dim" style={{marginTop:20}}>AVAILABLE:</div>
-                        <div style={{fontSize:20}}>{userPieBalance} $PIE</div>
-                        <div style={{marginTop: 20, padding: 15, border:'1px solid var(--color-glass-border)', borderRadius: 12}}>
-                            <input type="number" placeholder="Amount..." style={{background:'transparent', border:'none', color:'#fff', width:'100%', textAlign:'center', fontSize: 18, outline:'none'}} />
-                        </div>
-                        <div style={{ padding: '10px', background: 'rgba(0,255,157,0.1)', borderRadius: '8px', border: '1px solid var(--neon-green)', margin: '15px 0', fontSize: '14px' }}>
-                            Est. Daily Yield: <strong className="text-green">+{dailyEarnings.toFixed(2)} $PIE</strong>
-                        </div>
-                        <button className="cta-btn" onClick={()=>showToastMessage('Staked Successfully')}>STAKE</button>
-                    </div>
-                </div>
-            );
-        }
-
-        if (showTransactionHistoryPage) {
-            return (
-                <div className="container" style={{ padding: '0' }}>
-                    <div className="holo-panel" style={{ display: 'flex', alignItems: 'center', padding: '15px', borderRadius: '0 0 24px 24px', borderTop: 'none', marginTop: '-16px' }}>
-                        <button onClick={handleCloseFullPageViews} style={{ background: 'none', border: 'none', color: 'var(--neon-cyan)' }}><Icons.Back /></button>
-                        <h2 style={{ flexGrow: 1, textAlign: 'center', margin: 0, fontSize: '20px' }}>Transactions</h2>
-                        <div style={{ width: 24 }}></div>
-                    </div>
-                    <div style={{textAlign:'center', color:'gray', marginTop:30}}>No recent transactions</div>
-                </div>
-            );
-        }
-
-        // 3. MAIN TABS
         if (activeTab === 'Menu') {
             return (
                 <React.Fragment>
                     <div className="holo-panel pulse-glow">
                         <div className="balance-display">
                             <div className="balance-usd">
-                                $0.00 <button onClick={() => setShowBalanceTooltip(true)} style={{background:'none', border:'none', color: 'var(--color-text-secondary)', marginLeft: 8, cursor:'pointer'}}><Icons.Info /></button>
+                                ${currentUSDValue} 
+                                <button onClick={() => setShowBalanceTooltip(true)} style={{background:'none', border:'none', color: 'var(--color-text-secondary)', marginLeft: 8, cursor:'pointer'}}><Icons.Info /></button>
                             </div>
-                            <div className="balance-pie">{userPieBalance} $PIE</div>
+                            <div className="balance-pie">{formattedPieBalance} $PIE</div>
                         </div>
                         <div className="action-buttons">
                             <button className="action-btn" onClick={() => setShowStakingPage(true)}>STAKE</button>
                             <button className="action-btn" onClick={() => setShowSocialsModal(true)}>SOCIAL</button>
                         </div>
                         <button className="cta-btn" onClick={() => setShowGetPieModal(true)}>BUY $PIE</button>
-                        
-                        {/* REAL TON BUTTON */}
-                        <div style={{marginTop: 15, display:'flex', justifyContent:'center'}}>
-                            <TonConnectButton className="custom-ton-btn" />
-                        </div>
                     </div>
                     
                     <div className="holo-panel">
@@ -454,7 +744,7 @@ function App() {
                             <div className="nft-card" onClick={() => setShowNewPackModal(true)} style={{ minWidth: '280px' }}>
                                 <div style={{ padding: '15px', textAlign: 'center' }}>
                                     <div style={{ fontSize: '16px', fontWeight: '700', color: 'var(--color-text-primary)', marginBottom: '8px' }}>Plush Bluppie</div>
-                                    <img className="nft-image" src={BLUPPIE_NFT_URL} style={{width:140}} />
+                                    <img className="nft-image" src={BLUPPIE_NFT_URL} />
                                     <div className="text-neon" style={{ marginTop: '10px', fontSize: '20px', fontWeight: '900' }}>{PACK_PRICE.toFixed(2)} TON</div>
                                 </div>
                             </div>
@@ -469,18 +759,17 @@ function App() {
                 </React.Fragment>
             );
         } else if (activeTab === 'Marketplace') {
-            // Marketplace Logic with Search & Filter
-            const filteredList = marketplaceListings.filter(item => item.name.toLowerCase().includes(marketplaceSearch.toLowerCase()) || item.id.toString().includes(marketplaceSearch));
-            
+            const currentBalanceAmount = currentCurrency === 'TON' ? userTonBalance : userPieBalance;
+            const displayedBalance = currentBalanceAmount.toFixed(2) + ' ' + currentCurrency;
             return (
                 <div className="marketplace-container">
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                         <h2 style={{ fontSize: '22px' }}> <span className="text-neon">Marketplace</span></h2>
                         <button className="action-btn" style={{ padding: '8px 12px', fontSize: '12px' }} onClick={() => setShowFilterModal(true)}>
-                            {userFriendlyAddress ? '0.00 TON' : '--'} ▼
+                            {displayedBalance} ▼
                         </button>
                     </div>
-                     <input type="text" className="search-input" placeholder="Search ID..." value={marketplaceSearch} onChange={(e) => setMarketplaceSearch(e.target.value)} style={{marginBottom: 16}} />
+                        <input type="text" className="search-input" placeholder="Search ID..." value={marketplaceSearch} onChange={(e) => setMarketplaceSearch(e.target.value)} style={{marginBottom: 16}} />
                     <div className="sort-list-row" style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
                         <button className="action-btn" style={{flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:5}} onClick={() => setShowSortModal(true)}>
                             <Icons.Sort /> Sort
@@ -490,17 +779,19 @@ function App() {
                         </button>
                     </div>
                     <div className="item-grid">
-                        {filteredList.map((item) => (
+                        {marketplaceListings.map((item) => {
+                            const itemPrice = currentCurrency === 'TON' ? item.price : (item.price * TON_USD_PRICE / PIE_USD_PRICE).toFixed(4);
+                            return (
                             <div key={item.id} className="marketplace-card" onClick={() => {setSelectedNFTToBuy(item); setShowBuyModal(true);}}>
-                                <div className="card-image-wrapper"><img src={item.imageUrl} className="card-image"/></div>
+                                <div className="card-image-wrapper"><img src={item.image_url || BLUPPIE_NFT_URL} className="card-image"/></div>
                                 <div style={{ padding: '10px' }}>
-                                    <div style={{ fontSize: '14px', color: 'var(--color-text-secondary)', marginBottom: '8px' }}>{item.name} <span className="text-neon">#{item.id}</span></div>
-                                    <div className="card-price-tag">{item.price.toFixed(2)} {currentCurrency}</div>
+                                    <div style={{ fontSize: '14px', color: 'var(--color-text-secondary)', marginBottom: '8px' }}>{item.name} <span className="text-neon">#{item.item_number}</span></div>
+                                    <div className="card-price-tag">{parseFloat(itemPrice).toLocaleString('en-US', {maximumFractionDigits: 2})} {currentCurrency}</div>
                                 </div>
                             </div>
-                        ))}
+                        )})}
                     </div>
-                    {filteredList.length === 0 && <div className="text-dim" style={{textAlign:'center', marginTop: 20}}>NO MATCHES FOUND</div>}
+                    {marketplaceListings.length === 0 && <div className="text-dim" style={{textAlign:'center', marginTop: 20}}>NO MATCHES FOUND</div>}
                 </div>
             );
         } else if (activeTab === 'Profile') {
@@ -508,11 +799,11 @@ function App() {
                 <React.Fragment>
                     <div className="holo-panel">
                         <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
-                            <img src={userData?.photo_url || BLUPPIE_NFT_URL} style={{ width: '64px', height: '64px', borderRadius: '50%', border: '2px solid var(--neon-cyan)', padding: 2 }} />
+                            <img src={BLUPPIE_NFT_URL} style={{ width: '64px', height: '64px', borderRadius: '50%', border: '2px solid var(--neon-cyan)', padding: 2 }} />
                             <div style={{ marginLeft: '15px' }}>
-                                <div style={{ fontSize: '20px', fontWeight: '700' }}>{userData?.first_name}</div>
-                                <div style={{ fontSize: '12px', color: !userFriendlyAddress ? 'var(--neon-red)' : 'var(--neon-green)', fontFamily: 'monospace' }}>
-                                    {userFriendlyAddress ? userFriendlyAddress.slice(0, 6) + '...' + userFriendlyAddress.slice(-4) : 'not connected'}
+                                <div style={{ fontSize: '20px', fontWeight: '700' }}>BluppieNFT</div>
+                                <div style={{ fontSize: '12px', color: walletAddress === '0xDisconnected' ? 'var(--neon-red)' : 'var(--neon-green)', fontFamily: 'monospace' }}>
+                                    {walletAddress === '0xDisconnected' ? 'not connected' : ' ' + walletAddress.slice(0, 6) + '...'}
                                 </div>
                             </div>
                         </div>
@@ -527,6 +818,7 @@ function App() {
                                 <span style={{display:'flex', alignItems:'center', gap:10}}><Icons.History /> Transaction History</span> <span>&gt;</span>
                             </button>
                         </div>
+                        {walletAddress !== '0xDisconnected' && <button className="cta-btn" style={{background: 'transparent', border: '1px solid var(--neon-red)', color: 'var(--neon-red)'}} onClick={() => {setWalletAddress('0xDisconnected'); showToast('WALLET DISCONNECTED', 'error')}}>DISCONNECT WALLET</button>}
                     </div>
 
                     <div className="holo-panel"> 
@@ -535,7 +827,7 @@ function App() {
                             <span className="text-dim">Total Invites</span>
                             <span className="text-neon" style={{ fontSize: '18px', fontWeight: '800' }}>0</span>
                         </div>
-                        <button className="cta-btn" onClick={async () => { await navigator.clipboard.writeText(userFriendlyAddress || ''); showToastMessage('UPLINK COPIED'); }}>Invite Friends</button>
+                        <button className="cta-btn" onClick={async () => { await navigator.clipboard.writeText(walletAddress); showToast('UPLINK COPIED', 'success'); }}>Invite Friends</button>
                     </div>
                 </React.Fragment>
             );
@@ -543,108 +835,102 @@ function App() {
     };
 
     return (
-        <div className="app-container">
-            <div className="noise-overlay"></div>
-            <div className="container">
-                {renderContent()}
-                <Toast show={toast.show} message={toast.message} type={toast.type} />
-                
-                {/* MODALS */}
-                <NewPackModal 
-                    show={showNewPackModal} 
-                    onClose={() => setShowNewPackModal(false)} 
-                    showToast={showToastMessage} 
-                    handlePackPurchase={handlePackPurchase} 
-                    packsSold={packsSold} 
-                    userBalance={200} // Mock balance for pack modal display
-                />
-                <BuyModal 
-                    show={showBuyModal} 
-                    onClose={() => setShowBuyModal(false)} 
-                    nft={selectedNFTToBuy} 
-                    currentCurrency={currentCurrency} 
-                    showToast={showToastMessage} 
-                    handlePurchase={handlePurchase}
-                    tonBalance={200}
-                    pieBalance={parseFloat(userPieBalance.replace(/,/g, ''))}
-                />
-                <InventoryDetailModal 
-                    show={showInventoryDetail} 
-                    onClose={() => setShowInventoryDetail(false)} 
-                    nft={selectedInventoryNft} 
-                    showToast={showToastMessage} 
-                    isListed={selectedInventoryNft && selectedInventoryNft.status === 'Listed'} 
-                    deList={(id:number) => {
-                        setUserInventory(prev => prev.map(n => n.id === id ? {...n, status:'Owned'} : n));
-                        setShowInventoryDetail(false);
-                        showToastMessage('Delisted Successfully');
-                    }} 
-                />
-                <BalanceTooltipModal show={showBalanceTooltip} onClose={() => setShowBalanceTooltip(false)} usd={(parseFloat(userPieBalance.replace(/,/g, '')) * PIE_USD_PRICE).toFixed(2)} pie={userPieBalance} price={PIE_USD_PRICE} />
+        <div className="container">
+            {renderContent()}
+            <Toast show={toast.show} message={toast.message} type={toast.type} />
+            <BuyModal 
+                show={showBuyModal} 
+                onClose={() => setShowBuyModal(false)} 
+                nft={selectedNFTToBuy} 
+                currentCurrency={currentCurrency} 
+                showToast={showToast} 
+                handlePurchase={handlePurchase}
+                tonBalance={userTonBalance}
+                pieBalance={userPieBalance}
+            />
+            <NewPackModal 
+                show={showNewPackModal} 
+                onClose={() => setShowNewPackModal(false)} 
+                showToast={showToast} 
+                handlePackPurchase={handlePackPurchase} 
+                packsSold={packsSold} 
+                userBalance={userTonBalance}
+            />
+            <InventoryDetailModal show={showInventoryDetail} onClose={() => setShowInventoryDetail(false)} nft={selectedInventoryNft} showToast={showToast} isListed={selectedInventoryNft && selectedInventoryNft.status === 'Listed'} deList={handleDeList} />
+            <BalanceTooltipModal show={showBalanceTooltip} onClose={() => setShowBalanceTooltip(false)} usd={currentUSDValue} pie={formattedPieBalance} price={PIE_USD_PRICE} />
 
-                {/* SIMPLE MODALS (Sort/Filter/Socials) */}
-                {showSortModal && (
-                    <div className="modal-overlay" style={{position:'fixed', inset:0, display:'flex', alignItems:'flex-end', justifyContent:'center'}} onClick={() => setShowSortModal(false)}>
-                        <div className="modal-content" style={{width:'100%', maxWidth: 480, padding: 24, borderRadius: '24px 24px 0 0', paddingBottom: 40}} onClick={(e) => e.stopPropagation()}>
-                            <h3 className="text-neon" style={{marginBottom:15}}>SORT BY</h3>
-                            {['Price: Ascending', 'Price: Descending', 'Number: Ascending', 'Number: Descending'].map(opt => (
-                                <button key={opt} className="modal-item" style={{width:'100%', padding:10, textAlign:'left'}} onClick={()=>{setCurrentSort(opt); setShowSortModal(false);}}>{opt}</button>
-                            ))}
-                        </div>
+            {showSortModal && (
+                <div className="modal-overlay" style={{position:'fixed', inset:0, display:'flex', alignItems:'flex-end', justifyContent:'center'}} onClick={() => setShowSortModal(false)}>
+                    <div className="modal-content" style={{width:'100%', maxWidth: 480, padding: 24, borderRadius: '24px 24px 0 0', paddingBottom: 40}} onClick={(e) => e.stopPropagation()}>
+                        <h3 className="text-neon" style={{marginBottom:15}}>SORT BY</h3>
+                        {['Price: Ascending', 'Price: Descending', 'Number: Ascending', 'Number: Descending'].map(opt => (
+                            <button key={opt} className="modal-item" style={{width:'100%', padding:10, textAlign:'left'}} onClick={()=>{setCurrentSort(opt); setShowSortModal(false);}}>{opt}</button>
+                        ))}
                     </div>
-                )}
+                </div>
+            )}
 
-                {showFilterModal && (
-                     <div className="modal-overlay" style={{position:'fixed', inset:0, display:'flex', alignItems:'flex-end', justifyContent:'center'}} onClick={() => setShowFilterModal(false)}>
-                        <div className="modal-content" style={{width:'100%', maxWidth: 480, padding: 24, borderRadius: '24px 24px 0 0', paddingBottom: 40}} onClick={(e) => e.stopPropagation()}>
-                            <h3 className="text-neon" style={{marginBottom:15}}>CURRENCY</h3>
-                            <button className="modal-item" style={{width:'100%', padding:15, display:'flex', alignItems:'center'}} onClick={()=>{setCurrentCurrency('TON'); setShowFilterModal(false);}}><img src={TON_LOGO_URL} width="20" style={{marginRight:10}}/> TON</button>
-                            <button className="modal-item" style={{width:'100%', padding:15, display:'flex', alignItems:'center', marginTop:10}} onClick={()=>{setCurrentCurrency('PIE'); setShowFilterModal(false);}}><img src={PIE_LOGO_URL} width="20" style={{marginRight:10}}/> PIE</button>
-                        </div>
+            {showFilterModal && (
+                    <div className="modal-overlay" style={{position:'fixed', inset:0, display:'flex', alignItems:'flex-end', justifyContent:'center'}} onClick={() => setShowFilterModal(false)}>
+                    <div className="modal-content" style={{width:'100%', maxWidth: 480, padding: 24, borderRadius: '24px 24px 0 0', paddingBottom: 40}} onClick={(e) => e.stopPropagation()}>
+                        <h3 className="text-neon" style={{marginBottom:15}}>CURRENCY</h3>
+                        <button className="modal-item" style={{width:'100%', padding:15, display:'flex', alignItems:'center'}} onClick={()=>{setCurrentCurrency('TON'); setShowFilterModal(false);}}><img src={TON_LOGO_URL} width="20" style={{marginRight:10}}/> TON</button>
+                        <button className="modal-item" style={{width:'100%', padding:15, display:'flex', alignItems:'center', marginTop:10}} onClick={()=>{setCurrentCurrency('PIE'); setShowFilterModal(false);}}><img src={PIE_LOGO_URL} width="20" style={{marginRight:10}}/> PIE</button>
                     </div>
-                )}
+                </div>
+            )}
+            
+            {showGetPieModal && (
+                    <div className="modal-overlay" style={{position:'fixed', inset:0, display:'flex', alignItems:'flex-end', justifyContent:'center'}} onClick={() => setShowGetPieModal(false)}>
+                    <div className="modal-content" style={{width:'100%', maxWidth: 480, padding: 24, borderRadius: '24px 24px 0 0', paddingBottom: 40}} onClick={(e) => e.stopPropagation()}>
+                        <div style={{textAlign:'center', marginBottom:15}}><img src={PIE_LOGO_URL} width="50" style={{borderRadius:'50%'}}/></div>
+                        <h3 className="text-neon" style={{textAlign:'center', marginBottom:20}}>BUY $PIE</h3>
+                        <button className="modal-item" style={{width:'100%', padding:15, display:'flex', alignItems:'center'}} onClick={()=>{window.open(LINK_BLUM_SWAP, '_blank'); setShowGetPieModal(false);}}>
+                            <img src={BLUM_LOGO_URL} width="30" style={{marginRight:10, borderRadius:'50%'}}/> BLUM
+                        </button>
+                    </div>
+                </div>
+            )}
+            
+            {showSocialsModal && (
+                    <div className="modal-overlay" style={{position:'fixed', inset:0, display:'flex', alignItems:'flex-end', justifyContent:'center'}} onClick={() => setShowSocialsModal(false)}>
+                    <div className="modal-content" style={{width:'100%', maxWidth: 480, padding: 24, borderRadius: '24px 24px 0 0', paddingBottom: 40}} onClick={(e) => e.stopPropagation()}>
+                        <h3 className="text-neon" style={{textAlign:'center', marginBottom:20}}>COMMUNITY UPLINK</h3>
+                        <button className="modal-item" style={{width:'100%', padding:15, display:'flex', alignItems:'center', marginBottom:10}} onClick={()=>{window.open(SOCIAL_TWITTER, '_blank'); setShowSocialsModal(false);}}>
+                            <img src={TWITTER_LOGO_URL} width="30" style={{marginRight:10, borderRadius:'50%'}}/> Twitter
+                        </button>
+                        <button className="modal-item" style={{width:'100%', padding:15, display:'flex', alignItems:'center', marginBottom:10}} onClick={()=>{window.open(SOCIAL_TELEGRAM, '_blank'); setShowSocialsModal(false);}}>
+                            <img src={TELEGRAM_LOGO_URL} width="30" style={{marginRight:10, borderRadius:'50%'}}/> Telegram
+                        </button>
+                        <button className="modal-item" style={{width:'100%', padding:15, display:'flex', alignItems:'center'}} onClick={()=>{window.open(SOCIAL_DISCORD, '_blank'); setShowSocialsModal(false);}}>
+                            <img src={DISCORD_LOGO_URL} width="30" style={{marginRight:10, borderRadius:'50%'}}/> Discord
+                        </button>
+                    </div>
+                </div>
+            )}
 
-                {showGetPieModal && (
-                     <div className="modal-overlay" style={{position:'fixed', inset:0, display:'flex', alignItems:'flex-end', justifyContent:'center'}} onClick={() => setShowGetPieModal(false)}>
-                        <div className="modal-content" style={{width:'100%', maxWidth: 480, padding: 24, borderRadius: '24px 24px 0 0', paddingBottom: 40}} onClick={(e) => e.stopPropagation()}>
-                            <div style={{textAlign:'center', marginBottom:15}}><img src={PIE_LOGO_URL} width="50" style={{borderRadius:'50%'}}/></div>
-                            <h3 className="text-neon" style={{textAlign:'center', marginBottom:20}}>BUY $PIE</h3>
-                            <button className="modal-item" style={{width:'100%', padding:15, display:'flex', alignItems:'center'}} onClick={()=>{window.open(LINK_BLUM_SWAP, '_blank'); setShowGetPieModal(false);}}>
-                                <img src={BLUM_LOGO_URL} width="30" style={{marginRight:10, borderRadius:'50%'}}/> BLUM
-                            </button>
-                        </div>
-                    </div>
-                )}
-                
-                {showSocialsModal && (
-                     <div className="modal-overlay" style={{position:'fixed', inset:0, display:'flex', alignItems:'flex-end', justifyContent:'center'}} onClick={() => setShowSocialsModal(false)}>
-                        <div className="modal-content" style={{width:'100%', maxWidth: 480, padding: 24, borderRadius: '24px 24px 0 0', paddingBottom: 40}} onClick={(e) => e.stopPropagation()}>
-                            <h3 className="text-neon" style={{textAlign:'center', marginBottom:20}}>COMMUNITY UPLINK</h3>
-                            <button className="modal-item" style={{width:'100%', padding:15, display:'flex', alignItems:'center', marginBottom:10}} onClick={()=>{window.open(SOCIAL_TWITTER, '_blank'); setShowSocialsModal(false);}}>
-                                <img src={TWITTER_LOGO_URL} width="30" style={{marginRight:10, borderRadius:'50%'}}/> Twitter
-                            </button>
-                            <button className="modal-item" style={{width:'100%', padding:15, display:'flex', alignItems:'center', marginBottom:10}} onClick={()=>{window.open(SOCIAL_TELEGRAM, '_blank'); setShowSocialsModal(false);}}>
-                                <img src={TELEGRAM_LOGO_URL} width="30" style={{marginRight:10, borderRadius:'50%'}}/> Telegram
-                            </button>
-                            <button className="modal-item" style={{width:'100%', padding:15, display:'flex', alignItems:'center'}} onClick={()=>{window.open(SOCIAL_DISCORD, '_blank'); setShowSocialsModal(false);}}>
-                                <img src={DISCORD_LOGO_URL} width="30" style={{marginRight:10, borderRadius:'50%'}}/> Discord
-                            </button>
-                        </div>
-                    </div>
-                )}
-
-                <nav className="bottom-nav">
-                    <div className={`nav-item ${activeTab === 'Menu' ? 'active' : ''}`} onClick={() => handleNavClick('Menu')}>
-                        <Icons.Menu /><span>Home</span>
-                    </div>
-                    <div className={`nav-item ${activeTab === 'Marketplace' ? 'active' : ''}`} onClick={() => handleNavClick('Marketplace')}>
-                        <Icons.Market /><span>Market</span>
-                    </div>
-                    <div className={`nav-item ${activeTab === 'Profile' ? 'active' : ''}`} onClick={() => handleNavClick('Profile')}>
-                        <Icons.Profile /><span>Profile</span>
-                    </div>
-                </nav>
-            </div>
+            <nav className="bottom-nav" style={{
+                position: 'fixed',
+                bottom: 20,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: '90%',
+                maxWidth: 400,
+                display: 'flex',
+                justifyContent: 'space-around',
+                alignItems: 'center',
+                zIndex: 1000
+            }}>
+                <div className={`nav-item ${activeTab === 'Menu' ? 'active' : ''}`} onClick={() => handleNavClick('Menu')} style={{display:'flex', flexDirection:'column', alignItems:'center'}}>
+                    <Icons.Menu /><span style={{marginTop:4}}>Home</span>
+                </div>
+                <div className={`nav-item ${activeTab === 'Marketplace' ? 'active' : ''}`} onClick={() => handleNavClick('Marketplace')} style={{display:'flex', flexDirection:'column', alignItems:'center'}}>
+                    <Icons.Market /><span style={{marginTop:4}}>Marketplace</span>
+                </div>
+                <div className={`nav-item ${activeTab === 'Profile' ? 'active' : ''}`} onClick={() => handleNavClick('Profile')} style={{display:'flex', flexDirection:'column', alignItems:'center'}}>
+                    <Icons.Profile /><span style={{marginTop:4}}>Profile</span>
+                </div>
+            </nav>
         </div>
     );
 }

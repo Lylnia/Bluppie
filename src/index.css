@@ -1,6 +1,3 @@
-/* --- 1. FONTS & VARIABLES --- */
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Rajdhani:wght@400;500;600;700&display=swap');
-
 :root {
   --color-bg-deep: #050505;
   --color-glass-panel: rgba(255, 255, 255, 0.03);
@@ -23,7 +20,6 @@
   --glow-text: 0 0 8px rgba(0, 243, 255, 0.6);
 }
 
-/* --- 2. GLOBAL RESETS --- */
 * {
   margin: 0;
   padding: 0;
@@ -35,18 +31,30 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-/* --- 3. BODY & AMBIENT BACKGROUND (The Vibe) --- */
+/* --- IMAGE INTERACTION LOCKS --- */
+img {
+  -webkit-user-drag: none;
+  -khtml-user-drag: none;
+  -moz-user-drag: none;
+  -o-user-drag: none;
+  user-drag: none;
+  -webkit-touch-callout: none;
+  pointer-events: none;
+}
+
 body {
   font-family: var(--font-body);
   background-color: var(--color-bg-deep);
   color: var(--color-text-primary);
   min-height: 100vh;
-  width: 100vw;
+  padding: 16px;
+  padding-bottom: 110px;
   overflow-x: hidden;
+  width: 100vw;
   position: relative;
 }
 
-/* Floating Orbs Animation */
+/* --- AMBIENT BACKGROUND ANIMATION --- */
 body::before, body::after {
   content: '';
   position: fixed;
@@ -54,7 +62,7 @@ body::before, body::after {
   height: 60vw;
   border-radius: 50%;
   filter: blur(100px);
-  z-index: -2; /* Behind everything */
+  z-index: -1;
   opacity: 0.4;
   animation: floatOrb 10s ease-in-out infinite alternate;
 }
@@ -72,12 +80,7 @@ body::after {
   animation-delay: -5s;
 }
 
-@keyframes floatOrb {
-  0% { transform: translate(0, 0) scale(1); }
-  100% { transform: translate(20px, 40px) scale(1.1); }
-}
-
-/* Noise Texture Overlay */
+/* NOISE TEXTURE OVERLAY */
 .noise-overlay {
   position: fixed;
   top: 0;
@@ -85,36 +88,24 @@ body::after {
   width: 100%;
   height: 100%;
   pointer-events: none;
-  z-index: -1; /* Behind content, in front of orbs */
+  z-index: -1;
   opacity: 0.05;
   background: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
 }
 
-.app-container {
-  position: relative;
-  z-index: 1; /* Content sits on top */
-  padding: 16px;
-  padding-bottom: 110px;
-  min-height: 100vh;
+@keyframes floatOrb {
+  0% { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(20px, 40px) scale(1.1); }
 }
 
 .container {
   max-width: 480px;
   margin: 0 auto;
+  position: relative;
+  z-index: 1;
 }
 
-/* --- 4. IMAGE LOCKS --- */
-img {
-  -webkit-user-drag: none;
-  -khtml-user-drag: none;
-  -moz-user-drag: none;
-  -o-user-drag: none;
-  user-drag: none;
-  -webkit-touch-callout: none;
-  pointer-events: none;
-}
-
-/* --- 5. HOLO PANELS & UI --- */
+/* --- HOLO PANELS --- */
 .holo-panel {
   background: var(--color-glass-panel);
   backdrop-filter: blur(16px);
@@ -132,22 +123,44 @@ img {
 .holo-panel::after {
   content: '';
   position: absolute;
-  top: 0; left: 0; right: 0;
+  top: 0;
+  left: 0;
+  right: 0;
   height: 1px;
   background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
 }
 
-.pulse-glow {
-  animation: pulse-glow 3s infinite;
+/* --- TYPOGRAPHY --- */
+h2, .balance-usd, .nft-title, .game-title, .modal-title {
+  font-family: var(--font-head);
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
-@keyframes pulse-glow {
-  0% { box-shadow: 0 0 0 0 rgba(0, 243, 255, 0.1); border-color: var(--color-glass-border); }
-  50% { box-shadow: 0 0 20px 0 rgba(0, 243, 255, 0.2); border-color: rgba(0, 243, 255, 0.3); }
-  100% { box-shadow: 0 0 0 0 rgba(0, 243, 255, 0.1); border-color: var(--color-glass-border); }
+.balance-display {
+  text-align: left;
+  margin-bottom: 24px;
 }
 
-/* --- 6. BUTTONS & INPUTS --- */
+.balance-usd {
+  color: var(--color-text-primary);
+  font-size: 36px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  text-shadow: 0 0 15px rgba(255,255,255,0.1);
+  display: flex;
+  align-items: center;
+}
+
+.balance-pie {
+  color: var(--neon-cyan);
+  font-size: 18px;
+  font-family: var(--font-head);
+  font-weight: 600;
+  text-shadow: var(--glow-text);
+}
+
+/* --- BUTTONS --- */
 .action-buttons {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -168,6 +181,15 @@ img {
   letter-spacing: 1px;
   cursor: pointer;
   transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+
+.action-btn:hover, .marketplace-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);
+  transform: translateY(-2px);
 }
 
 .cta-btn {
@@ -183,7 +205,22 @@ img {
   text-transform: uppercase;
   letter-spacing: 1.5px;
   cursor: pointer;
+  transition: all 0.3s;
   box-shadow: 0 4px 20px rgba(0, 243, 255, 0.4);
+  position: relative;
+}
+
+.cta-btn:hover:not(:disabled) {
+  transform: scale(1.02);
+  box-shadow: 0 6px 25px rgba(0, 243, 255, 0.6);
+  filter: brightness(1.1);
+}
+
+.cta-btn:disabled {
+  background: #333;
+  color: #666;
+  box-shadow: none;
+  cursor: not-allowed;
 }
 
 .cta-btn.secondary {
@@ -193,21 +230,54 @@ img {
   box-shadow: none;
 }
 
-/* --- 7. MARKETPLACE & CARDS --- */
-.item-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+/* --- NFT SCROLLER & GRID --- */
+.nft-title {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: var(--color-text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.marketplace-card {
+.nft-scroll {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  padding: 4px 0 20px 0;
+  scrollbar-width: none;
+  justify-content: center;
+}
+.nft-scroll::-webkit-scrollbar { display: none; }
+
+.nft-card, .marketplace-card {
   background: rgba(0, 0, 0, 0.4);
   border-radius: 16px;
   border: 1px solid var(--color-glass-border);
   overflow: hidden;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
 }
+
+.nft-card { flex: 0 0 180px; }
+
+.nft-card:hover, .marketplace-card:hover {
+  transform: translateY(-5px) scale(1.02);
+  border-color: var(--neon-purple);
+  box-shadow: 0 10px 30px rgba(188, 19, 254, 0.2);
+}
+
+.nft-card::before, .marketplace-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,243,255,0.05) 100%);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.nft-card:hover::before { opacity: 1; }
 
 .card-image-wrapper {
   background: rgba(255,255,255,0.02);
@@ -218,13 +288,46 @@ img {
   align-items: center;
 }
 
-.card-image {
+.nft-image, .card-image {
   width: 100%;
   height: 140px;
   object-fit: contain;
   filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5));
+  transition: transform 0.3s;
+}
+.nft-card:hover .nft-image, .marketplace-card:hover .card-image {
+  transform: scale(1.1);
 }
 
+.item-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+/* --- INPUTS --- */
+.search-input, input[type="number"], input[type="text"] {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--color-glass-border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  color: var(--neon-cyan);
+  font-family: var(--font-head);
+  font-size: 18px;
+  outline: none;
+  transition: all 0.3s;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.search-input:focus, input:focus {
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 15px rgba(0, 243, 255, 0.1);
+  background: rgba(0, 0, 0, 0.5);
+}
+
+/* --- TAGS & BADGES --- */
 .card-price-tag {
   background: linear-gradient(90deg, rgba(188, 19, 254, 0.2), rgba(188, 19, 254, 0.4));
   border: 1px solid rgba(188, 19, 254, 0.5);
@@ -242,18 +345,31 @@ img {
   text-shadow: 0 0 5px var(--neon-purple);
 }
 
-/* --- 8. MODALS --- */
+/* --- MODALS --- */
 .modal-overlay {
   background: rgba(0, 0, 0, 0.85);
   backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
   z-index: 2000;
 }
 
 .modal-content {
   background: #0a0a0a;
-  border: 1px solid var(--color-glass-border);
+  border: 1px solid var(--color-glass-border); 
+  border-top: 1px solid rgba(255,255,255,0.15);
   box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.8);
+  border-radius: 24px 24px 0 0;
+  position: relative;
+}
+.modal-content::before {
+  content: '';
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 4px;
+  background: var(--color-glass-border);
+  border-radius: 2px;
 }
 
 .modal-item {
@@ -263,13 +379,13 @@ img {
   border-radius: 12px;
   margin-bottom: 8px;
   transition: 0.2s;
-  cursor: pointer;
-  text-align: left;
-  display: flex;
-  align-items: center;
+}
+.modal-item:hover {
+  background: rgba(0, 243, 255, 0.1);
+  border-color: var(--neon-cyan);
 }
 
-/* --- 9. NAVIGATION & SCROLL --- */
+/* --- BOTTOM NAV --- */
 .bottom-nav {
   background: rgba(10, 10, 10, 0.85);
   backdrop-filter: blur(20px);
@@ -278,16 +394,6 @@ img {
   border-radius: 32px; 
   box-shadow: 0 10px 40px rgba(0,0,0,0.6); 
   height: 70px;
-  position: fixed;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 90%;
-  max-width: 400px;
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  z-index: 1000;
 }
 
 .nav-item {
@@ -297,10 +403,6 @@ img {
   font-size: 12px;
   letter-spacing: 1px;
   opacity: 0.7;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  cursor: pointer;
 }
 
 .nav-item.active {
@@ -309,31 +411,46 @@ img {
   text-shadow: 0 0 10px rgba(0,243,255,0.5);
 }
 
-.nft-scroll {
-  display: flex;
-  gap: 16px;
-  overflow-x: auto;
-  padding: 4px 0 20px 0;
-  scrollbar-width: none;
-  justify-content: center;
+.nav-item.active .nav-icon path {
+  fill: var(--neon-cyan);
+  filter: drop-shadow(0 0 5px var(--neon-cyan));
 }
-.nft-scroll::-webkit-scrollbar {
-  display: none;
-}
-.nft-card { flex: 0 0 180px; }
 
-/* --- 10. UTILITIES --- */
+/* --- ICONS --- */
+.icon-svg {
+  width: 24px;
+  height: 24px;
+  fill: currentColor;
+}
+
+/* --- TOAST --- */
+.toast {
+  background: rgba(10, 10, 10, 0.95);
+  border: 1px solid var(--color-glass-border);
+  backdrop-filter: blur(12px);
+  font-family: var(--font-head);
+  letter-spacing: 0.5px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+.toast.success { border-color: var(--neon-green); color: var(--neon-green); }
+.toast.error { border-color: var(--neon-red); color: var(--neon-red); }
+
+/* Utilities */
 .text-neon { color: var(--neon-cyan); }
+.text-purple { color: var(--neon-purple); }
 .text-green { color: var(--neon-green); }
 .text-dim { color: var(--color-text-dim); }
-.menu-item-button { border-bottom: 1px solid var(--color-glass-border); }
+
+.menu-item-button {
+  border-bottom: 1px solid var(--color-glass-border);
+}
 .menu-item-button:last-child { border-bottom: none; }
 
-/* --- 11. TON CONNECT OVERRIDE --- */
-#ton-connect-button button {
-    background: rgba(255, 255, 255, 0.05) !important;
-    border: 1px solid var(--color-glass-border) !important;
-    color: #fff !important;
-    font-family: var(--font-head) !important;
-    border-radius: 16px !important;
+.pulse-glow {
+  animation: pulse-glow 3s infinite;
+}
+@keyframes pulse-glow {
+  0% { box-shadow: 0 0 0 0 rgba(0, 243, 255, 0.1); border-color: var(--color-glass-border); }
+  50% { box-shadow: 0 0 20px 0 rgba(0, 243, 255, 0.2); border-color: rgba(0, 243, 255, 0.3); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 243, 255, 0.1); border-color: var(--color-glass-border); }
 }

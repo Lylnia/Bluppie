@@ -18,12 +18,13 @@ async function apiCall(endpoint, method = 'GET', body = null) {
         if (!res.ok) throw new Error('API Error');
         return await res.json();
     } catch (error) {
-        console.error("API Fetch Error:", error);
+        console.error("Backend API Error:", error);
         throw error;
     }
 }
 
 // --- SABİTLER ---
+// Senin PIE Token Kontratın
 const PIE_TOKEN_CONTRACT = "EQDgIHYB656hYyTJKh0bdO2ABNAcLXa45wIhJrApgJE8Nhxk"; 
 
 const BLUPPIE_NFT_URL = "https://i.imgur.com/TDukTkX.png"; 
@@ -605,9 +606,9 @@ function App() {
         return () => { document.body.style.overflow = ''; };
     }, [isAnyModalOpen]);
 
-    // --- DATA FETCHING (AYRIŞTIRILMIŞ) ---
+    // --- DATA FETCHING (BAĞIMSIZ/PARALEL) ---
 
-    // 1. Sadece TON Bakiyesi
+    // 1. Sadece TON Bakiyesi (TON Center V2)
     const fetchTonBalance = async () => {
         if (!userFriendlyAddress) return;
         try {
@@ -626,34 +627,32 @@ function App() {
                 const realTon = parseInt(data.result) / 1000000000;
                 setUserTonBalance(realTon);
             }
-        } catch (e) { console.error("TON Fetch Error:", e); }
+        } catch (e) { 
+            console.error("TON Fetch Error:", e); 
+        }
     };
 
-    // 2. Sadece PIE Bakiyesi (TONAPI.IO)
+    // 2. Sadece PIE Bakiyesi (TON Center V3)
     const fetchPieBalance = async () => {
         if (!userFriendlyAddress) return;
         try {
-            const jettonRes = await fetch(`https://tonapi.io/v2/accounts/${userFriendlyAddress}/jettons`);
-            if (jettonRes.status === 429) { 
-                console.warn("TONAPI Rate Limit exceeded"); 
-                return; // Çok istek atıldıysa dur
-            }
+            const jettonRes = await fetch(
+                `https://toncenter.com/api/v3/jetton/wallets?owner_address=${userFriendlyAddress}&jetton_address=${PIE_TOKEN_CONTRACT}&limit=1&offset=0`
+            );
             const jettonData = await jettonRes.json();
 
-            if (jettonData && jettonData.balances) {
-                const pieToken = jettonData.balances.find(
-                    token => token.jetton.address === PIE_TOKEN_CONTRACT
-                );
-                if (pieToken) {
-                    const decimals = pieToken.jetton.decimals || 9;
-                    const rawBalance = parseFloat(pieToken.balance);
-                    const formattedPie = rawBalance / Math.pow(10, decimals);
-                    setUserPieBalance(formattedPie);
-                } else {
-                    setUserPieBalance(0);
-                }
+            if (jettonData && jettonData.items && jettonData.items.length > 0) {
+                const item = jettonData.items[0];
+                const decimals = parseInt(item.jetton.decimals) || 9;
+                const rawBalance = parseFloat(item.balance);
+                const formattedPie = rawBalance / Math.pow(10, decimals);
+                setUserPieBalance(formattedPie);
+            } else {
+                setUserPieBalance(0);
             }
-        } catch (e) { console.error("PIE Fetch Error:", e); }
+        } catch (e) { 
+            console.error("PIE Token Fetch Error:", e); 
+        }
     };
 
     // 3. Envanter (Backend)
@@ -677,7 +676,12 @@ function App() {
     const fetchAllData = async () => {
         setIsRefreshing(true);
         // Hepsini paralel ve bağımsız çalıştır
-        await Promise.allSettled([fetchTonBalance(), fetchPieBalance(), fetchBackendData(), fetchMarketplace()]);
+        await Promise.allSettled([
+            fetchTonBalance(), 
+            fetchPieBalance(), 
+            fetchBackendData(), 
+            fetchMarketplace()
+        ]);
         setIsRefreshing(false);
     };
 

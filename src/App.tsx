@@ -4,12 +4,13 @@ import './index.css';
 import WebApp from '@twa-dev/sdk';
 import { TonConnectButton, useTonAddress, useTonConnectUI } from '@tonconnect/ui-react';
 
-// --- GÜVENLİ DEĞİŞKENLER (ENV) ---
-// Key ve URL'i .env dosyasından çeker
+// --- GÜVENLİ DEĞİŞKENLER (.env) ---
+// Vercel'de 'Settings -> Environment Variables' kısmına VITE_TONAPI_KEY eklemeyi unutma!
 const TONAPI_KEY = import.meta.env.VITE_TONAPI_KEY; 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 // --- SABİTLER ---
+// Senin PIE Token Kontratın
 const PIE_TOKEN_CONTRACT = "EQDgIHYB656hYyTJKh0bdO2ABNAcLXa45wIhJrApgJE8Nhxk"; 
 
 const BLUPPIE_NFT_URL = "https://i.imgur.com/TDukTkX.png"; 
@@ -611,12 +612,11 @@ function App() {
     const fetchAllData = async () => {
         if (!userFriendlyAddress) return;
 
-        // Header (Varsa ekle)
+        // API KEY'i varsa header'a ekle
         const headers = TONAPI_KEY ? { 'Authorization': `Bearer ${TONAPI_KEY}` } : {};
 
-        // 1. TON & PIE BAKİYESİ (TonAPI)
         try {
-            // TON
+            // 1. TON BAKİYESİ (TonAPI)
             const tonRes = await fetch(`https://tonapi.io/v2/accounts/${userFriendlyAddress}`, { headers });
             if (tonRes.ok) {
                 const tonData = await tonRes.json();
@@ -625,14 +625,21 @@ function App() {
                 }
             }
 
-            // PIE
+            // 2. PIE BAKİYESİ (TonAPI)
             const jettonRes = await fetch(`https://tonapi.io/v2/accounts/${userFriendlyAddress}/jettons`, { headers });
+            
             if (jettonRes.ok) {
                 const jettonData = await jettonRes.json();
+
                 if (jettonData && jettonData.balances) {
-                    const pieToken = jettonData.balances.find(
-                        token => token.jetton.address === PIE_TOKEN_CONTRACT
+                    // SORUN ÇÖZÜCÜ: Akıllı Eşleştirme (Fuzzy Match)
+                    // Kontrat adresinin sadece son 20 karakterine bakıyoruz (EQ/UQ karmaşasını çözer)
+                    const targetSuffix = PIE_TOKEN_CONTRACT.slice(-20); 
+                    
+                    const pieToken = jettonData.balances.find(token => 
+                        token.jetton.address.endsWith(targetSuffix)
                     );
+
                     if (pieToken) {
                         const decimals = pieToken.jetton.decimals || 9;
                         const rawBalance = parseFloat(pieToken.balance);
@@ -646,12 +653,13 @@ function App() {
             console.error("TonAPI Fetch Error:", e); 
         }
 
-        // 2. Backend Verisi (Envanter vs)
+        // 3. Backend Verisi (Envanter vs)
         try {
             const apiData = await apiCall(`/user/${userFriendlyAddress}`);
             setUserInventory(apiData.inventory);
             setTransactionHistory(apiData.transactions);
         } catch (e) {
+            // Backend yoksa Demo Envanter
             if (userInventory.length === 0) {
                 setUserInventory([
                     { id: 1, name: "Plush Bluppie", item_number: 1, image_url: BLUPPIE_NFT_URL, status: "Owned" },
@@ -873,7 +881,6 @@ function App() {
                         </div>
 
                         <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'center' }}>
-                             {/* ORİJİNAL TON CONNECT BUTONU (Disconnect vs her şey bunun içinde) */}
                              <TonConnectButton />
                         </div>
 

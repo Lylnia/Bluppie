@@ -1,3 +1,6 @@
+/* --- 1. FONTS & VARIABLES --- */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Rajdhani:wght@400;500;600;700&display=swap');
+
 :root {
   --color-bg-deep: #050505;
   --color-glass-panel: rgba(255, 255, 255, 0.03);
@@ -20,23 +23,14 @@
   --glow-text: 0 0 8px rgba(0, 243, 255, 0.6);
 }
 
+/* --- 2. GLOBAL RESETS --- */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  -webkit-user-select: none; 
-  -moz-user-select: none;    
-  -ms-user-select: none;     
-  user-select: none;         
+  -webkit-user-select: none; /* No text selection */
+  user-select: none;
   -webkit-tap-highlight-color: transparent;
-}
-
-/* LOCK IMAGES */
-img {
-  -webkit-user-drag: none;
-  user-drag: none;
-  -webkit-touch-callout: none;
-  pointer-events: none;
 }
 
 body {
@@ -45,13 +39,13 @@ body {
   color: var(--color-text-primary);
   min-height: 100vh;
   padding: 16px;
-  padding-bottom: 110px; /* Space for floating nav */
+  padding-bottom: 110px; /* Space for bottom nav */
   overflow-x: hidden;
   width: 100vw;
   position: relative;
 }
 
-/* AMBIENT BACKGROUND */
+/* --- 3. AMBIENT BACKGROUND & ANIMATIONS --- */
 body::before, body::after {
   content: '';
   position: fixed;
@@ -82,7 +76,6 @@ body::after {
   100% { transform: translate(20px, 40px) scale(1.1); }
 }
 
-/* NOISE OVERLAY */
 .noise-overlay {
   position: fixed;
   top: 0;
@@ -95,18 +88,18 @@ body::after {
   background: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
 }
 
-.container {
-  max-width: 480px;
-  margin: 0 auto;
-  position: relative;
-  z-index: 1;
+/* --- 4. IMAGE LOCKS (Stop dragging/long-press) --- */
+img {
+  -webkit-user-drag: none;
+  -khtml-user-drag: none;
+  -moz-user-drag: none;
+  -o-user-drag: none;
+  user-drag: none;
+  -webkit-touch-callout: none;
+  pointer-events: none;
 }
 
-/* UTILITIES */
-.text-dim { color: var(--color-text-dim); }
-.text-neon { color: var(--neon-cyan); }
-
-/* HOLO PANELS */
+/* --- 5. HOLO PANELS & CARDS --- */
 .holo-panel {
   background: var(--color-glass-panel);
   backdrop-filter: blur(16px);
@@ -118,14 +111,13 @@ body::after {
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
   position: relative;
   overflow: hidden;
+  transition: transform 0.2s, border-color 0.2s;
 }
 
 .holo-panel::after {
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
+  top: 0; left: 0; right: 0;
   height: 1px;
   background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
 }
@@ -140,7 +132,102 @@ body::after {
   100% { box-shadow: 0 0 0 0 rgba(0, 243, 255, 0.1); border-color: var(--color-glass-border); }
 }
 
-/* NAVIGATION */
+/* --- 6. BUTTONS --- */
+.action-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.action-btn {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-glass-border);
+  border-radius: 16px;
+  padding: 14px;
+  font-family: var(--font-head);
+  font-size: 16px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.cta-btn {
+  width: 100%;
+  background: linear-gradient(135deg, var(--neon-cyan), #0099ff);
+  color: #000;
+  border: none;
+  border-radius: 16px;
+  padding: 16px;
+  font-family: var(--font-head);
+  font-size: 18px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(0, 243, 255, 0.4);
+}
+
+.cta-btn.secondary {
+  background: transparent;
+  border: 1px solid var(--neon-cyan);
+  color: var(--neon-cyan);
+  box-shadow: none;
+}
+
+/* --- 7. MARKETPLACE & GRID --- */
+.item-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.marketplace-card {
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 16px;
+  border: 1px solid var(--color-glass-border);
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.card-image-wrapper {
+  background: rgba(255,255,255,0.02);
+  padding: 10px;
+  border-bottom: 1px solid var(--color-glass-border);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.card-image {
+  width: 100%;
+  height: 140px;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5));
+}
+
+.card-price-tag {
+  background: linear-gradient(90deg, rgba(188, 19, 254, 0.2), rgba(188, 19, 254, 0.4));
+  border: 1px solid rgba(188, 19, 254, 0.5);
+  color: #fff;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 90%;
+  margin-top: 10px;
+  text-shadow: 0 0 5px var(--neon-purple);
+}
+
+/* --- 8. NAVIGATION --- */
 .bottom-nav {
   background: rgba(10, 10, 10, 0.85);
   backdrop-filter: blur(20px);
@@ -180,43 +267,31 @@ body::after {
   text-shadow: 0 0 10px rgba(0,243,255,0.5);
 }
 
-/* CUSTOM TON BUTTON STYLING OVERRIDE */
-#ton-connect-button button {
-    background: var(--color-glass-panel) !important;
-    border: 1px solid var(--neon-cyan) !important;
-    border-radius: 16px !important;
-    font-family: var(--font-head) !important;
-}
-/* Modal Overlay & Content */
-.modal-overlay {
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-}
+/* --- 9. UTILITIES --- */
+.text-neon { color: var(--neon-cyan); }
+.text-green { color: var(--neon-green); }
+.text-dim { color: var(--color-text-dim); }
 
-.modal-content {
-    box-shadow: 0 0 40px rgba(0, 243, 255, 0.2);
-}
-
-/* NFT Scrollbar Hide */
-.nft-scroll::-webkit-scrollbar {
-    display: none;
-}
+/* --- 10. SCROLLBAR HIDING --- */
 .nft-scroll {
-    scrollbar-width: none;
-    display: flex;
-    gap: 16px;
-    overflow-x: auto;
-    padding: 4px 0 20px 0;
-    justify-content: center;
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  padding: 4px 0 20px 0;
+  scrollbar-width: none;
+  justify-content: center;
 }
-
-/* Grid Layouts */
-.item-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
+.nft-scroll::-webkit-scrollbar {
+  display: none;
 }
+.nft-card { flex: 0 0 180px; }
 
-.nft-card {
-    flex: 0 0 180px;
+/* --- 11. TON CONNECT OVERRIDES --- */
+/* This forces the wallet button to match your theme */
+#ton-connect-button button {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid var(--color-glass-border) !important;
+    color: #fff !important;
+    font-family: var(--font-head) !important;
+    border-radius: 16px !important;
 }

@@ -16,7 +16,7 @@ const SOCIAL_DISCORD = "https://discord.gg/";
 const LINK_GAME = "https://t.me/BluppieBot"; 
 const LINK_BLUM_SWAP = "https://t.me/blum/app";
 
-// --- ICONS (Restored Full Set) ---
+// --- ICONS (Full Set) ---
 const Icons = {
     Back: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>,
     Menu: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>,
@@ -33,7 +33,7 @@ const Icons = {
     Refresh: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
 };
 
-// --- MOCK DATA (Kept for non-blockchain features) ---
+// --- MOCK DATA ---
 const INITIAL_INVENTORY = [
     { id: 1, name: "Plush Bluppie", itemNumber: 1, imageUrl: BLUPPIE_NFT_URL, status: "Owned" },
     { id: 2, name: "Plush Bluppie", itemNumber: 10, imageUrl: BLUPPIE_NFT_URL, status: "Owned" },
@@ -44,6 +44,8 @@ const INITIAL_MARKETPLACE = [
     { id: 967, price: 42.90, imageUrl: BLUPPIE_NFT_URL, name: "Plush Bluppie" },
     { id: 279, price: 42.95, imageUrl: BLUPPIE_NFT_URL, name: "Plush Bluppie" },
     { id: 767, price: 43.00, imageUrl: BLUPPIE_NFT_URL, name: "Plush Bluppie" },
+    { id: 101, price: 43.10, imageUrl: BLUPPIE_NFT_URL, name: "Plush Bluppie" },
+    { id: 444, price: 43.25, imageUrl: BLUPPIE_NFT_URL, name: "Plush Bluppie" },
 ];
 const MOCK_TRANSACTIONS = [
     { id: 1, type: 'List', item: 'Plush Bluppie #100', amount: 2.95, currency: 'TON', status: 'Active' },
@@ -67,6 +69,7 @@ function App() {
     const [marketplace, setMarketplace] = useState(INITIAL_MARKETPLACE);
     const [isInventoryShowingListings, setIsInventoryShowingListings] = useState(false);
     const [packsSold, setPacksSold] = useState(10);
+    const [marketplaceSearch, setMarketplaceSearch] = useState('');
 
     // Modals
     const [showPackModal, setShowPackModal] = useState(false);
@@ -85,7 +88,6 @@ function App() {
             setUserData({ first_name: "Vibe", username: "Coder", photo_url: BLUPPIE_NFT_URL });
         }
         
-        // Disable context menu (long press)
         const handleContextMenu = (e: Event) => e.preventDefault();
         document.addEventListener('contextmenu', handleContextMenu);
         return () => document.removeEventListener('contextmenu', handleContextMenu);
@@ -119,6 +121,7 @@ function App() {
         const newItem = { id: Date.now(), name: "Plush Bluppie", itemNumber: packsSold + 1, imageUrl: BLUPPIE_NFT_URL, status: "Owned" };
         setInventory(prev => [...prev, newItem]);
         setShowPackModal(false);
+        alert('Pack Opened!');
     };
 
     const handleBuyMarketItem = () => {
@@ -127,12 +130,12 @@ function App() {
             setInventory(prev => [...prev, newItem]);
             setMarketplace(prev => prev.filter(i => i.id !== selectedItem.id));
             setShowBuyModal(false);
+            alert('Purchase Successful!');
         }
     };
 
     // --- RENDERERS ---
     
-    // 1. SUB-PAGES (Inventory, Staking, History)
     if (subPage === 'Inventory') {
         const ownedNfts = inventory.filter(nft => nft.status === 'Owned');
         const listedNfts = inventory.filter(nft => nft.status === 'Listed');
@@ -166,6 +169,7 @@ function App() {
                         </div>
                     ))}
                 </div>
+                {displayedNfts.length === 0 && <div className="text-dim" style={{textAlign:'center', marginTop:30}}>EMPTY</div>}
             </div>
         );
     }
@@ -220,7 +224,6 @@ function App() {
         );
     }
 
-    // 2. MAIN TABS (Menu, Market, Profile)
     const renderContent = () => {
         if (activeTab === 'Menu') {
             return (
@@ -238,7 +241,6 @@ function App() {
                             )}
                         </div>
                         
-                        {/* Restored Action Buttons */}
                         <div className="action-buttons">
                             <button className="action-btn" onClick={() => setSubPage('Staking')}>STAKE</button>
                             <button className="action-btn" onClick={() => setShowSocialsModal(true)}>SOCIAL</button>
@@ -250,7 +252,6 @@ function App() {
                         </div>
                     </div>
 
-                    {/* Restored Scroller */}
                     <div className="holo-panel">
                         <div className="nft-title" style={{justifyContent:'center'}}><span className="text-neon"></span> New Packages & Pre-Sale</div> 
                         <div className="nft-scroll">
@@ -264,7 +265,6 @@ function App() {
                         </div>
                     </div>
 
-                    {/* Restored "Join The Flow" */}
                     <div className="holo-panel" style={{ textAlign: 'center' }}>
                         <div className="game-title text-neon" style={{marginBottom: 5}}>JOIN THE FLOW</div>
                         <div className="text-dim" style={{fontSize: 12, marginBottom: 15}}>EARN $BLUP IN THE BLUPPIE UNIVERSE</div>
@@ -275,11 +275,41 @@ function App() {
         }
         
         if (activeTab === 'Marketplace') {
+            // RESTORED: Marketplace Search & Filter Logic
+            const filteredMarket = marketplace.filter(item => item.name.toLowerCase().includes(marketplaceSearch.toLowerCase()) || item.id.toString().includes(marketplaceSearch));
+
             return (
                 <div className="marketplace-container">
-                    <h2 style={{ fontSize: '22px', marginBottom: 16 }}> <span className="text-neon">Marketplace</span></h2>
+                    {/* RESTORED: Header & Balance Button */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                        <h2 style={{ fontSize: '22px' }}> <span className="text-neon">Marketplace</span></h2>
+                        <button className="action-btn" style={{ padding: '8px 12px', fontSize: '12px' }}>
+                            {userFriendlyAddress ? '220.50 TON' : '--- TON'} ▼
+                        </button>
+                    </div>
+
+                    {/* RESTORED: Search Input */}
+                    <input 
+                        type="text" 
+                        className="search-input" 
+                        placeholder="Search ID..." 
+                        value={marketplaceSearch} 
+                        onChange={(e) => setMarketplaceSearch(e.target.value)} 
+                        style={{marginBottom: 16, width: '100%', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--color-glass-border)', padding: 14, borderRadius: 12, color: 'var(--neon-cyan)', fontFamily: 'var(--font-head)', fontSize: 18, outline: 'none'}}
+                    />
+
+                    {/* RESTORED: Sort & List Buttons */}
+                    <div className="sort-list-row" style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+                        <button className="action-btn" style={{flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:5}}>
+                            <Icons.Sort /> Sort
+                        </button>
+                        <button className="cta-btn" style={{flex:1, fontSize: 14, padding: 12}} onClick={() => alert('Please connect wallet to list items')}>
+                            + LIST NFT
+                        </button>
+                    </div>
+
                     <div className="item-grid">
-                        {marketplace.map((item) => (
+                        {filteredMarket.map((item) => (
                             <div key={item.id} className="marketplace-card" onClick={() => {setSelectedItem(item); setShowBuyModal(true);}}>
                                 <div className="card-image-wrapper"><img src={item.imageUrl} className="card-image"/></div>
                                 <div style={{ padding: '10px' }}>
@@ -289,6 +319,7 @@ function App() {
                             </div>
                         ))}
                     </div>
+                    {filteredMarket.length === 0 && <div className="text-dim" style={{textAlign:'center', marginTop: 30}}>NO MATCHES FOUND</div>}
                 </div>
             );
         }
@@ -339,9 +370,9 @@ function App() {
                 <div className="modal-overlay" style={{position:'fixed', inset:0, zIndex:2000, display:'flex', alignItems:'flex-end', justifyContent:'center', background:'rgba(0,0,0,0.85)'}} onClick={() => setShowSocialsModal(false)}>
                     <div className="modal-content" onClick={e => e.stopPropagation()} style={{width:'100%', maxWidth:480, padding:24, borderRadius:'24px 24px 0 0', borderTop:'1px solid var(--neon-cyan)', background:'#0a0a0a'}}>
                         <h3 className="text-neon" style={{marginBottom:20, textAlign:'center'}}>COMMUNITY UPLINK</h3>
-                        <button className="modal-item" style={{width:'100%', padding:15, marginBottom:10}} onClick={()=>window.open(SOCIAL_TWITTER, '_blank')}>Twitter</button>
-                        <button className="modal-item" style={{width:'100%', padding:15, marginBottom:10}} onClick={()=>window.open(SOCIAL_TELEGRAM, '_blank')}>Telegram</button>
-                        <button className="modal-item" style={{width:'100%', padding:15}} onClick={()=>window.open(SOCIAL_DISCORD, '_blank')}>Discord</button>
+                        <button className="modal-item" style={{width:'100%', padding:15, marginBottom:10, background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.1)', color:'#fff', borderRadius:12}} onClick={()=>window.open(SOCIAL_TWITTER, '_blank')}>Twitter</button>
+                        <button className="modal-item" style={{width:'100%', padding:15, marginBottom:10, background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.1)', color:'#fff', borderRadius:12}} onClick={()=>window.open(SOCIAL_TELEGRAM, '_blank')}>Telegram</button>
+                        <button className="modal-item" style={{width:'100%', padding:15, background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.1)', color:'#fff', borderRadius:12}} onClick={()=>window.open(SOCIAL_DISCORD, '_blank')}>Discord</button>
                     </div>
                 </div>
             )}
@@ -350,7 +381,7 @@ function App() {
                 <div className="modal-overlay" style={{position:'fixed', inset:0, zIndex:2000, display:'flex', alignItems:'flex-end', justifyContent:'center', background:'rgba(0,0,0,0.85)'}} onClick={() => setShowGetPieModal(false)}>
                     <div className="modal-content" onClick={e => e.stopPropagation()} style={{width:'100%', maxWidth:480, padding:24, borderRadius:'24px 24px 0 0', borderTop:'1px solid var(--neon-cyan)', background:'#0a0a0a'}}>
                         <h3 className="text-neon" style={{marginBottom:20, textAlign:'center'}}>GET $PIE</h3>
-                        <button className="modal-item" style={{width:'100%', padding:15}} onClick={()=>window.open(LINK_BLUM_SWAP, '_blank')}>Trade on BLUM</button>
+                        <button className="modal-item" style={{width:'100%', padding:15, background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.1)', color:'#fff', borderRadius:12}} onClick={()=>window.open(LINK_BLUM_SWAP, '_blank')}>Trade on BLUM</button>
                     </div>
                 </div>
             )}
@@ -402,13 +433,13 @@ function App() {
 
                 <nav className="bottom-nav">
                     <div className={`nav-item ${activeTab === 'Menu' ? 'active' : ''}`} onClick={() => setActiveTab('Menu')}>
-                        <Icons.Menu /><span>Home</span>
+                        <Icons.Menu /><span style={{marginTop:4}}>Home</span>
                     </div>
                     <div className={`nav-item ${activeTab === 'Marketplace' ? 'active' : ''}`} onClick={() => setActiveTab('Marketplace')}>
-                        <Icons.Market /><span>Market</span>
+                        <Icons.Market /><span style={{marginTop:4}}>Marketplace</span>
                     </div>
                     <div className={`nav-item ${activeTab === 'Profile' ? 'active' : ''}`} onClick={() => setActiveTab('Profile')}>
-                        <Icons.Profile /><span>Profile</span>
+                        <Icons.Profile /><span style={{marginTop:4}}>Profile</span>
                     </div>
                 </nav>
             </div>

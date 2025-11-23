@@ -24,7 +24,8 @@ async function apiCall(endpoint, method = 'GET', body = null) {
 }
 
 // --- SABİTLER ---
-const PIE_TOKEN_CONTRACT = "EQDgIHYB656hYyTJKh0bdO2ABNAcLXa45wIhJrApgJE8Nhxk"; // Senin Kontratın
+// Senin PIE Token Kontratın
+const PIE_TOKEN_CONTRACT = "EQDgIHYB656hYyTJKh0bdO2ABNAcLXa45wIhJrApgJE8Nhxk"; 
 
 const BLUPPIE_NFT_URL = "https://i.imgur.com/TDukTkX.png"; 
 const BLUM_LOGO_URL = "https://s2.coinmarketcap.com/static/img/coins/200x200/33154.png"; 
@@ -553,7 +554,6 @@ function App() {
     const [userPieBalance, setUserPieBalance] = useState(0); 
     const [userTonBalance, setUserTonBalance] = useState(0);
     const [userInventory, setUserInventory] = useState([]);
-    // WalletAddress artık TON Connect'ten geliyor, o yüzden default state'i kaldırdık
     const walletAddress = userFriendlyAddress || "0xDisconnected"; 
 
     const [activeTab, setActiveTab] = useState('Menu'); 
@@ -589,7 +589,6 @@ function App() {
             WebApp.expand(); 
         }
 
-        // Disable Context Menu
         const handleContextMenu = (e) => e.preventDefault();
         document.addEventListener('contextmenu', handleContextMenu);
         return () => document.removeEventListener('contextmenu', handleContextMenu);
@@ -606,7 +605,7 @@ function App() {
         return () => { document.body.style.overflow = ''; };
     }, [isAnyModalOpen]);
 
-    // --- DATA FETCHING (GÜNCELLENMİŞ) ---
+    // --- DATA FETCHING (GÜNCELLENMİŞ TON CENTER V3) ---
     const fetchUserData = async () => {
         if (!userFriendlyAddress) return;
 
@@ -631,24 +630,24 @@ function App() {
             console.error("TON Fetch Error:", e);
         }
 
-        // 2. GERÇEK PIE TOKEN BAKİYESİ (TONAPI.IO)
+        // 2. GERÇEK PIE TOKEN BAKİYESİ (TONCENTER V3 - ÜCRETSİZ)
         try {
-            const jettonRes = await fetch(`https://tonapi.io/v2/accounts/${userFriendlyAddress}/jettons`);
+            // Toncenter V3 Jetton Wallets Endpoint
+            const jettonRes = await fetch(
+                `https://toncenter.com/api/v3/jetton/wallets?owner_address=${userFriendlyAddress}&jetton_address=${PIE_TOKEN_CONTRACT}&limit=1&offset=0`
+            );
             const jettonData = await jettonRes.json();
 
-            if (jettonData && jettonData.balances) {
-                const pieToken = jettonData.balances.find(
-                    token => token.jetton.address === PIE_TOKEN_CONTRACT
-                );
-
-                if (pieToken) {
-                    const decimals = pieToken.jetton.decimals || 9;
-                    const rawBalance = parseFloat(pieToken.balance);
-                    const formattedPie = rawBalance / Math.pow(10, decimals);
-                    setUserPieBalance(formattedPie);
-                } else {
-                    setUserPieBalance(0); 
-                }
+            if (jettonData && jettonData.items && jettonData.items.length > 0) {
+                // Token bulundu, bakiyeyi al
+                const item = jettonData.items[0];
+                const decimals = parseInt(item.jetton.decimals) || 9;
+                const rawBalance = parseFloat(item.balance);
+                const formattedPie = rawBalance / Math.pow(10, decimals);
+                setUserPieBalance(formattedPie);
+            } else {
+                // Token bulunamadıysa bakiye 0
+                setUserPieBalance(0);
             }
         } catch (e) {
             console.error("PIE Token Fetch Error:", e);
@@ -660,7 +659,6 @@ function App() {
             setUserInventory(apiData.inventory);
             setTransactionHistory(apiData.transactions);
         } catch (e) {
-            // Backend yoksa DEMO envanter
             if (userInventory.length === 0) {
                 setUserInventory([
                     { id: 1, name: "Plush Bluppie", item_number: 1, image_url: BLUPPIE_NFT_URL, status: "Owned" },

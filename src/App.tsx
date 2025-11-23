@@ -24,6 +24,8 @@ async function apiCall(endpoint, method = 'GET', body = null) {
 }
 
 // --- SABİTLER ---
+const PIE_TOKEN_CONTRACT = "EQDgIHYB656hYyTJKh0bdO2ABNAcLXa45wIhJrApgJE8Nhxk"; // Senin Kontratın
+
 const BLUPPIE_NFT_URL = "https://i.imgur.com/TDukTkX.png"; 
 const BLUM_LOGO_URL = "https://s2.coinmarketcap.com/static/img/coins/200x200/33154.png"; 
 const PIE_LOGO_URL = "https://i.imgur.com/GMjw61v.jpeg"; 
@@ -551,7 +553,7 @@ function App() {
     const [userPieBalance, setUserPieBalance] = useState(0); 
     const [userTonBalance, setUserTonBalance] = useState(0);
     const [userInventory, setUserInventory] = useState([]);
-    // WalletAddress artık TON Connect'ten geliyor, o yüzden default state'i kaldırdık veya fallback yaptık
+    // WalletAddress artık TON Connect'ten geliyor, o yüzden default state'i kaldırdık
     const walletAddress = userFriendlyAddress || "0xDisconnected"; 
 
     const [activeTab, setActiveTab] = useState('Menu'); 
@@ -604,17 +606,67 @@ function App() {
         return () => { document.body.style.overflow = ''; };
     }, [isAnyModalOpen]);
 
-    // --- DATA FETCHING ---
+    // --- DATA FETCHING (GÜNCELLENMİŞ) ---
     const fetchUserData = async () => {
-        if (!userFriendlyAddress) return; // Cüzdan bağlı değilse çekme
+        if (!userFriendlyAddress) return;
+
+        // 1. GERÇEK TON BAKİYESİ
         try {
-            const data = await apiCall(`/user/${userFriendlyAddress}`);
-            setUserPieBalance(data.balance_pie);
-            setUserTonBalance(data.balance_ton);
-            setUserInventory(data.inventory);
-            setTransactionHistory(data.transactions);
+            const response = await fetch('https://toncenter.com/api/v2/jsonRPC', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    "id": "1",
+                    "jsonrpc": "2.0",
+                    "method": "getAddressBalance",
+                    "params": { "address": userFriendlyAddress }
+                })
+            });
+            const data = await response.json();
+            if (data.result) {
+                const realTon = parseInt(data.result) / 1000000000;
+                setUserTonBalance(realTon);
+            }
         } catch (e) {
-            console.error("User data fetch error", e);
+            console.error("TON Fetch Error:", e);
+        }
+
+        // 2. GERÇEK PIE TOKEN BAKİYESİ (TONAPI.IO)
+        try {
+            const jettonRes = await fetch(`https://tonapi.io/v2/accounts/${userFriendlyAddress}/jettons`);
+            const jettonData = await jettonRes.json();
+
+            if (jettonData && jettonData.balances) {
+                const pieToken = jettonData.balances.find(
+                    token => token.jetton.address === PIE_TOKEN_CONTRACT
+                );
+
+                if (pieToken) {
+                    const decimals = pieToken.jetton.decimals || 9;
+                    const rawBalance = parseFloat(pieToken.balance);
+                    const formattedPie = rawBalance / Math.pow(10, decimals);
+                    setUserPieBalance(formattedPie);
+                } else {
+                    setUserPieBalance(0); 
+                }
+            }
+        } catch (e) {
+            console.error("PIE Token Fetch Error:", e);
+        }
+
+        // 3. ENVANTER VE GEÇMİŞ
+        try {
+            const apiData = await apiCall(`/user/${userFriendlyAddress}`);
+            setUserInventory(apiData.inventory);
+            setTransactionHistory(apiData.transactions);
+        } catch (e) {
+            // Backend yoksa DEMO envanter
+            if (userInventory.length === 0) {
+                setUserInventory([
+                    { id: 1, name: "Plush Bluppie", item_number: 1, image_url: BLUPPIE_NFT_URL, status: "Owned" },
+                    { id: 2, name: "Plush Bluppie", item_number: 10, image_url: BLUPPIE_NFT_URL, status: "Owned" }
+                ]);
+            }
         }
     };
 

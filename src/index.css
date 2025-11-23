@@ -187,3 +187,36 @@ body::after {
     border-radius: 16px !important;
     font-family: var(--font-head) !important;
 }
+/* Modal Overlay & Content */
+.modal-overlay {
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.modal-content {
+    box-shadow: 0 0 40px rgba(0, 243, 255, 0.2);
+}
+
+/* NFT Scrollbar Hide */
+.nft-scroll::-webkit-scrollbar {
+    display: none;
+}
+.nft-scroll {
+    scrollbar-width: none;
+    display: flex;
+    gap: 16px;
+    overflow-x: auto;
+    padding: 4px 0 20px 0;
+    justify-content: center;
+}
+
+/* Grid Layouts */
+.item-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+.nft-card {
+    flex: 0 0 180px;
+}

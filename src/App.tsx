@@ -9,54 +9,73 @@ const PIE_JETTON_MASTER = "EQDgIHYB656hYyTJKh0bdO2ABNAcLXa45wIhJrApgJE8Nhxk";
 const TON_API_URL = "https://tonapi.io/v2/accounts"; 
 const PACK_PRICE = 3.00; 
 const TOTAL_PACK_SUPPLY = 1000;
+// Social Links
+const SOCIAL_TWITTER = "https://twitter.com/BluppieNFT";
+const SOCIAL_TELEGRAM = "https://t.me/BluppieNFT";
+const SOCIAL_DISCORD = "https://discord.gg/";
+const LINK_GAME = "https://t.me/BluppieBot"; 
+const LINK_BLUM_SWAP = "https://t.me/blum/app";
 
-// --- MOCK DATA (Restored for Demo) ---
+// --- ICONS (Restored Full Set) ---
+const Icons = {
+    Back: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>,
+    Menu: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>,
+    Market: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/></svg>,
+    Profile: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>,
+    Info: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>,
+    Close: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>,
+    Check: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>,
+    History: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>,
+    Sort: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3 18h6v-2H3v2zM3 6v2h18V6H3zm0 7h12v-2H3v2z"/></svg>,
+    Filter: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"/></svg>,
+    Stake: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L1 21h22L12 2zm0 3.99L19.53 19H4.47L12 5.99zM11 16h2v2h-2zm0-6h2v4h-2z"/></svg>,
+    Friends: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>,
+    Refresh: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+};
+
+// --- MOCK DATA (Kept for non-blockchain features) ---
 const INITIAL_INVENTORY = [
     { id: 1, name: "Plush Bluppie", itemNumber: 1, imageUrl: BLUPPIE_NFT_URL, status: "Owned" },
     { id: 2, name: "Plush Bluppie", itemNumber: 10, imageUrl: BLUPPIE_NFT_URL, status: "Owned" },
+    { id: 3, name: "Plush Bluppie", itemNumber: 100, imageUrl: BLUPPIE_NFT_URL, status: "Owned" },
 ];
-
 const INITIAL_MARKETPLACE = [
     { id: 875, price: 42.85, imageUrl: BLUPPIE_NFT_URL, name: "Plush Bluppie" },
     { id: 967, price: 42.90, imageUrl: BLUPPIE_NFT_URL, name: "Plush Bluppie" },
     { id: 279, price: 42.95, imageUrl: BLUPPIE_NFT_URL, name: "Plush Bluppie" },
     { id: 767, price: 43.00, imageUrl: BLUPPIE_NFT_URL, name: "Plush Bluppie" },
 ];
+const MOCK_TRANSACTIONS = [
+    { id: 1, type: 'List', item: 'Plush Bluppie #100', amount: 2.95, currency: 'TON', status: 'Active' },
+    { id: 2, type: 'Buy', item: 'Plush Bluppie Package', amount: 3.00, currency: 'TON', status: 'Completed' },
+];
 
-// --- ICONS ---
-const Icons = {
-    Menu: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>,
-    Market: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/></svg>,
-    Profile: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>,
-    Refresh: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>,
-    Close: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>,
-    Stake: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L1 21h22L12 2zm0 3.99L19.53 19H4.47L12 5.99zM11 16h2v2h-2zm0-6h2v4h-2z"/></svg>,
-    History: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>,
-    Back: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
-};
-
+// --- COMPONENTS ---
 function App() {
-    // --- CORE STATE ---
+    // Core Web3 & Telegram State
     const userFriendlyAddress = useTonAddress();
-    const [activeTab, setActiveTab] = useState('Menu');
-    const [pieBalance, setPieBalance] = useState<string>('0.00');
     const [userData, setUserData] = useState<any>(null);
+    const [pieBalance, setPieBalance] = useState<string>('0.00');
     const [isLoading, setIsLoading] = useState(false);
 
-    // --- GAME STATE (Restored) ---
+    // Navigation & UI State
+    const [activeTab, setActiveTab] = useState('Menu');
+    const [subPage, setSubPage] = useState<string | null>(null);
+    
+    // Game Logic State
     const [inventory, setInventory] = useState(INITIAL_INVENTORY);
     const [marketplace, setMarketplace] = useState(INITIAL_MARKETPLACE);
+    const [isInventoryShowingListings, setIsInventoryShowingListings] = useState(false);
     const [packsSold, setPacksSold] = useState(10);
-    
-    // --- MODAL STATES ---
+
+    // Modals
     const [showPackModal, setShowPackModal] = useState(false);
     const [showBuyModal, setShowBuyModal] = useState(false);
+    const [showSocialsModal, setShowSocialsModal] = useState(false);
+    const [showGetPieModal, setShowGetPieModal] = useState(false);
     const [selectedItem, setSelectedItem] = useState<any>(null);
-    
-    // --- NAVIGATION STATES (Sub-pages) ---
-    const [subPage, setSubPage] = useState<string | null>(null); // 'Inventory', 'Staking'
 
-    // --- INIT ---
+    // --- INITIALIZATION ---
     useEffect(() => {
         WebApp.ready();
         WebApp.expand();
@@ -66,13 +85,13 @@ function App() {
             setUserData({ first_name: "Vibe", username: "Coder", photo_url: BLUPPIE_NFT_URL });
         }
         
-        // Disable context menu globally
+        // Disable context menu (long press)
         const handleContextMenu = (e: Event) => e.preventDefault();
         document.addEventListener('contextmenu', handleContextMenu);
         return () => document.removeEventListener('contextmenu', handleContextMenu);
     }, []);
 
-    // --- FETCH REAL BALANCE ---
+    // --- FETCH REAL PIE BALANCE ---
     const fetchPieBalance = async () => {
         if (!userFriendlyAddress) return;
         setIsLoading(true);
@@ -86,7 +105,6 @@ function App() {
             });
             setPieBalance(formatted);
         } catch (error) {
-            console.log("User likely has 0 PIE or API rate limit", error);
             setPieBalance("0.00");
         } finally {
             setIsLoading(false);
@@ -95,38 +113,47 @@ function App() {
 
     useEffect(() => { if (userFriendlyAddress) fetchPieBalance(); }, [userFriendlyAddress]);
 
-    // --- ACTIONS ---
+    // --- ACTION HANDLERS ---
     const handlePackPurchase = () => {
-        // Simulate purchase
         setPacksSold(prev => prev + 1);
         const newItem = { id: Date.now(), name: "Plush Bluppie", itemNumber: packsSold + 1, imageUrl: BLUPPIE_NFT_URL, status: "Owned" };
         setInventory(prev => [...prev, newItem]);
         setShowPackModal(false);
-        alert("PACK OPENED! New Bluppie added to Inventory.");
     };
 
     const handleBuyMarketItem = () => {
-        // Simulate Market Buy
         if (selectedItem) {
             const newItem = { ...selectedItem, status: 'Owned', itemNumber: selectedItem.id };
             setInventory(prev => [...prev, newItem]);
             setMarketplace(prev => prev.filter(i => i.id !== selectedItem.id));
             setShowBuyModal(false);
-            alert(`Successfully bought ${selectedItem.name}!`);
         }
     };
 
-    // --- SUB-PAGES RENDERERS ---
+    // --- RENDERERS ---
+    
+    // 1. SUB-PAGES (Inventory, Staking, History)
     if (subPage === 'Inventory') {
+        const ownedNfts = inventory.filter(nft => nft.status === 'Owned');
+        const listedNfts = inventory.filter(nft => nft.status === 'Listed');
+        const displayedNfts = isInventoryShowingListings ? listedNfts : ownedNfts;
+
         return (
-            <div className="container" style={{paddingTop: 16}}>
+            <div className="container">
                 <div className="holo-panel" style={{ display: 'flex', alignItems: 'center', padding: '15px' }}>
                     <button onClick={() => setSubPage(null)} style={{ background: 'none', border: 'none', color: 'var(--neon-cyan)', cursor: 'pointer' }}><Icons.Back /></button>
                     <h2 style={{ flexGrow: 1, textAlign: 'center', margin: 0, fontSize: '20px' }}>Inventory</h2>
                     <div style={{ width: 24 }}></div>
                 </div>
+                
+                {/* Inventory Toggles */}
+                <div style={{ padding: '0 16px', marginBottom: '16px', display: 'flex', gap: '12px' }}>
+                    <button className="action-btn" onClick={() => setIsInventoryShowingListings(false)} style={{ flex: 1, borderColor: !isInventoryShowingListings ? 'var(--neon-cyan)' : '', color: !isInventoryShowingListings ? 'var(--neon-cyan)' : '' }}>Owned ({ownedNfts.length})</button>
+                    <button className="action-btn" onClick={() => setIsInventoryShowingListings(true)} style={{ flex: 1, borderColor: isInventoryShowingListings ? 'var(--neon-cyan)' : '', color: isInventoryShowingListings ? 'var(--neon-cyan)' : '' }}>Listings ({listedNfts.length})</button>
+                </div>
+
                 <div className="item-grid">
-                    {inventory.map((item) => (
+                    {displayedNfts.map((item) => (
                         <div key={item.id} className="marketplace-card">
                             <div className="card-image-wrapper">
                                 <img src={item.imageUrl} className="card-image" />
@@ -145,7 +172,7 @@ function App() {
 
     if (subPage === 'Staking') {
         return (
-            <div className="container" style={{paddingTop: 16}}>
+            <div className="container">
                 <div className="holo-panel" style={{ display: 'flex', alignItems: 'center', padding: '15px' }}>
                     <button onClick={() => setSubPage(null)} style={{ background: 'none', border: 'none', color: 'var(--neon-cyan)' }}><Icons.Back /></button>
                     <h2 style={{ flexGrow: 1, textAlign: 'center', margin: 0, fontSize: '20px' }}>Staking Pool</h2>
@@ -154,15 +181,46 @@ function App() {
                 <div className="holo-panel pulse-glow" style={{textAlign:'center', padding:30}}>
                     <div className="text-dim">APY</div>
                     <div className="text-neon" style={{fontSize:40, fontWeight:800}}>120%</div>
-                    <div className="text-dim" style={{marginTop:20}}>YOUR BALANCE</div>
-                    <div style={{fontSize:20}}>{pieBalance} $PIE</div>
-                    <button className="cta-btn" style={{marginTop:20}} onClick={() => alert("Staking Simulated!")}>STAKE MAX</button>
+                    <div className="text-dim" style={{marginTop:20}}>AVAILABLE TO STAKE</div>
+                    <div style={{fontSize:20, fontFamily: 'var(--font-head)'}}>{pieBalance} $PIE</div>
+                    <div style={{marginTop: 20, padding: 15, border:'1px solid var(--color-glass-border)', borderRadius: 12}}>
+                        <input type="number" placeholder="Amount..." style={{background:'transparent', border:'none', color:'#fff', width:'100%', textAlign:'center', fontSize: 18, outline:'none'}} />
+                    </div>
+                    <button className="cta-btn" style={{marginTop:20}}>STAKE NOW</button>
                 </div>
             </div>
         );
     }
 
-    // --- MAIN TABS RENDERER ---
+    if (subPage === 'History') {
+        return (
+            <div className="container">
+                <div className="holo-panel" style={{ display: 'flex', alignItems: 'center', padding: '15px' }}>
+                    <button onClick={() => setSubPage(null)} style={{ background: 'none', border: 'none', color: 'var(--neon-cyan)' }}><Icons.Back /></button>
+                    <h2 style={{ flexGrow: 1, textAlign: 'center', margin: 0, fontSize: '20px' }}>Transactions</h2>
+                    <div style={{ width: 24 }}></div>
+                </div>
+                <div style={{ padding: '0 16px' }}>
+                    {MOCK_TRANSACTIONS.map((tx) => (
+                        <div key={tx.id} className="holo-panel" style={{ padding: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                            <div>
+                                <div style={{ fontWeight: '700', color: '#fff', fontFamily: 'var(--font-head)' }}>
+                                    <span style={{ color: tx.type.includes('Buy') ? 'var(--neon-red)' : 'var(--neon-green)' }}>{tx.type.toUpperCase()}</span>
+                                </div>
+                                <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginTop: '4px' }}>{tx.item}</div>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                                <div className="text-neon">{tx.amount} {tx.currency}</div>
+                                <div style={{ fontSize: '10px', opacity: 0.5 }}>{tx.status}</div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    }
+
+    // 2. MAIN TABS (Menu, Market, Profile)
     const renderContent = () => {
         if (activeTab === 'Menu') {
             return (
@@ -170,33 +228,47 @@ function App() {
                     <div className="holo-panel pulse-glow">
                         <div className="balance-display">
                             <div className="text-dim" style={{ fontSize: 12, marginBottom: 5 }}>TOTAL BALANCE</div>
-                            <div className="balance-pie" style={{ fontSize: 36, color: 'var(--neon-cyan)' }}>
-                                {pieBalance} $PIE
-                            </div>
+                            <div className="balance-pie" style={{ fontSize: 36, color: 'var(--neon-cyan)' }}>{pieBalance} $PIE</div>
                             {userFriendlyAddress ? (
                                 <div style={{ fontSize: 12, color: 'var(--neon-green)', marginTop: 5, display:'flex', alignItems:'center', gap:5 }}>
-                                    ● WALLET CONNECTED
-                                    <button onClick={fetchPieBalance} style={{background:'none', border:'none', color:'inherit', cursor:'pointer', opacity: isLoading ? 0.5 : 1}}><Icons.Refresh /></button>
+                                    ● CONNECTED <button onClick={fetchPieBalance} style={{background:'none', border:'none', color:'inherit', cursor:'pointer', opacity: isLoading?0.5:1}}><Icons.Refresh /></button>
                                 </div>
-                            ) : <div style={{ fontSize: 12, color: 'var(--neon-red)', marginTop: 5 }}>● WALLET DISCONNECTED</div>}
+                            ) : (
+                                <div style={{ fontSize: 12, color: 'var(--neon-red)', marginTop: 5 }}>● DISCONNECTED</div>
+                            )}
                         </div>
-                        <div style={{ marginTop: 15 }}>
+                        
+                        {/* Restored Action Buttons */}
+                        <div className="action-buttons">
+                            <button className="action-btn" onClick={() => setSubPage('Staking')}>STAKE</button>
+                            <button className="action-btn" onClick={() => setShowSocialsModal(true)}>SOCIAL</button>
+                        </div>
+                        <button className="cta-btn" onClick={() => setShowGetPieModal(true)}>BUY $PIE</button>
+                        
+                        <div style={{marginTop: 20, display: 'flex', justifyContent: 'center'}}>
                             <TonConnectButton className="custom-ton-btn" />
                         </div>
                     </div>
 
-                    {/* PRE-SALE SECTION RESTORED */}
+                    {/* Restored Scroller */}
                     <div className="holo-panel">
                         <div className="nft-title" style={{justifyContent:'center'}}><span className="text-neon"></span> New Packages & Pre-Sale</div> 
                         <div className="nft-scroll">
                             <div className="nft-card" onClick={() => setShowPackModal(true)} style={{ minWidth: '280px' }}>
                                 <div style={{ padding: '15px', textAlign: 'center' }}>
                                     <div style={{ fontSize: '16px', fontWeight: '700', color: 'var(--color-text-primary)', marginBottom: '8px' }}>Plush Bluppie</div>
-                                    <img className="nft-image" src={BLUPPIE_NFT_URL} />
+                                    <img src={BLUPPIE_NFT_URL} className="nft-image" style={{width: 140}} />
                                     <div className="text-neon" style={{ marginTop: '10px', fontSize: '20px', fontWeight: '900' }}>{PACK_PRICE.toFixed(2)} TON</div>
                                 </div>
                             </div>
                         </div>
+                    </div>
+
+                    {/* Restored "Join The Flow" */}
+                    <div className="holo-panel" style={{ textAlign: 'center' }}>
+                        <div className="game-title text-neon" style={{marginBottom: 5}}>JOIN THE FLOW</div>
+                        <div className="text-dim" style={{fontSize: 12, marginBottom: 15}}>EARN $BLUP IN THE BLUPPIE UNIVERSE</div>
+                        <button className="cta-btn secondary" onClick={() => window.open(LINK_GAME, '_blank')}>PLAY GAME</button>
                     </div>
                 </React.Fragment>
             );
@@ -223,23 +295,37 @@ function App() {
 
         if (activeTab === 'Profile') {
             return (
-                <div className="holo-panel">
-                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
-                        <img src={userData?.photo_url || BLUPPIE_NFT_URL} style={{ width: '64px', height: '64px', borderRadius: '50%', border: '2px solid var(--neon-cyan)', padding: 2 }} />
-                        <div style={{ marginLeft: '15px' }}>
-                            <div style={{ fontSize: '20px', fontWeight: '700' }}>{userData?.first_name}</div>
-                            <div className="text-dim">@{userData?.username}</div>
+                <React.Fragment>
+                    <div className="holo-panel">
+                        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
+                            <img src={userData?.photo_url || BLUPPIE_NFT_URL} style={{ width: '64px', height: '64px', borderRadius: '50%', border: '2px solid var(--neon-cyan)', padding: 2 }} />
+                            <div style={{ marginLeft: '15px' }}>
+                                <div style={{ fontSize: '20px', fontWeight: '700' }}>{userData?.first_name}</div>
+                                <div className="text-dim">@{userData?.username}</div>
+                            </div>
+                        </div>
+                        <div style={{ marginBottom: '10px' }}>
+                            <button className="menu-item-button" style={{ width: '100%', background: 'transparent', color: '#fff', padding: '15px 0', display: 'flex', justifyContent: 'space-between', cursor:'pointer', border:'none', borderBottom:'1px solid var(--color-glass-border)' }} onClick={() => setSubPage('Inventory')}>
+                                <span style={{display:'flex', alignItems:'center', gap:10}}><Icons.Market /> Inventory</span> <span>&gt;</span>
+                            </button>
+                            <button className="menu-item-button" style={{ width: '100%', background: 'transparent', color: '#fff', padding: '15px 0', display: 'flex', justifyContent: 'space-between', cursor:'pointer', border:'none', borderBottom:'1px solid var(--color-glass-border)' }} onClick={() => setSubPage('Staking')}>
+                                <span style={{display:'flex', alignItems:'center', gap:10}}><Icons.Stake /> Staking</span> <span>&gt;</span>
+                            </button>
+                            <button className="menu-item-button" style={{ width: '100%', background: 'transparent', color: '#fff', padding: '15px 0', display: 'flex', justifyContent: 'space-between', cursor:'pointer', border:'none' }} onClick={() => setSubPage('History')}>
+                                <span style={{display:'flex', alignItems:'center', gap:10}}><Icons.History /> Transactions</span> <span>&gt;</span>
+                            </button>
                         </div>
                     </div>
-                    <div style={{ marginBottom: '10px' }}>
-                        <button className="menu-item-button" style={{ width: '100%', background: 'transparent', color: '#fff', padding: '15px 0', display: 'flex', justifyContent: 'space-between', cursor:'pointer', border:'none', borderBottom:'1px solid var(--color-glass-border)' }} onClick={() => setSubPage('Inventory')}>
-                            <span style={{display:'flex', alignItems:'center', gap:10}}> Inventory</span> <span>&gt;</span>
-                        </button>
-                        <button className="menu-item-button" style={{ width: '100%', background: 'transparent', color: '#fff', padding: '15px 0', display: 'flex', justifyContent: 'space-between', cursor:'pointer', border:'none', borderBottom:'1px solid var(--color-glass-border)' }} onClick={() => setSubPage('Staking')}>
-                            <span style={{display:'flex', alignItems:'center', gap:10}}><Icons.Stake /> Staking</span> <span>&gt;</span>
-                        </button>
+                    
+                    <div className="holo-panel"> 
+                        <div className="nft-title" style={{fontSize: 18}}><Icons.Friends /> Referrals</div>
+                        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '15px', justifyContent: 'space-between' }}>
+                            <span className="text-dim">Total Invites</span>
+                            <span className="text-neon" style={{ fontSize: '18px', fontWeight: '800' }}>0</span>
+                        </div>
+                        <button className="cta-btn" onClick={async () => { await navigator.clipboard.writeText(userFriendlyAddress); alert('Referral Link Copied!'); }}>Invite Friends</button>
                     </div>
-                </div>
+                </React.Fragment>
             );
         }
     };
@@ -248,16 +334,41 @@ function App() {
         <div className="app-container">
             <div className="noise-overlay"></div>
             
-            {/* --- MODALS --- */}
+            {/* MODALS */}
+            {showSocialsModal && (
+                <div className="modal-overlay" style={{position:'fixed', inset:0, zIndex:2000, display:'flex', alignItems:'flex-end', justifyContent:'center', background:'rgba(0,0,0,0.85)'}} onClick={() => setShowSocialsModal(false)}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()} style={{width:'100%', maxWidth:480, padding:24, borderRadius:'24px 24px 0 0', borderTop:'1px solid var(--neon-cyan)', background:'#0a0a0a'}}>
+                        <h3 className="text-neon" style={{marginBottom:20, textAlign:'center'}}>COMMUNITY UPLINK</h3>
+                        <button className="modal-item" style={{width:'100%', padding:15, marginBottom:10}} onClick={()=>window.open(SOCIAL_TWITTER, '_blank')}>Twitter</button>
+                        <button className="modal-item" style={{width:'100%', padding:15, marginBottom:10}} onClick={()=>window.open(SOCIAL_TELEGRAM, '_blank')}>Telegram</button>
+                        <button className="modal-item" style={{width:'100%', padding:15}} onClick={()=>window.open(SOCIAL_DISCORD, '_blank')}>Discord</button>
+                    </div>
+                </div>
+            )}
+
+            {showGetPieModal && (
+                <div className="modal-overlay" style={{position:'fixed', inset:0, zIndex:2000, display:'flex', alignItems:'flex-end', justifyContent:'center', background:'rgba(0,0,0,0.85)'}} onClick={() => setShowGetPieModal(false)}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()} style={{width:'100%', maxWidth:480, padding:24, borderRadius:'24px 24px 0 0', borderTop:'1px solid var(--neon-cyan)', background:'#0a0a0a'}}>
+                        <h3 className="text-neon" style={{marginBottom:20, textAlign:'center'}}>GET $PIE</h3>
+                        <button className="modal-item" style={{width:'100%', padding:15}} onClick={()=>window.open(LINK_BLUM_SWAP, '_blank')}>Trade on BLUM</button>
+                    </div>
+                </div>
+            )}
+
             {showPackModal && (
                 <div className="modal-overlay" style={{position:'fixed', inset:0, zIndex:2000, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(0,0,0,0.85)'}} onClick={() => setShowPackModal(false)}>
                     <div className="modal-content" onClick={e => e.stopPropagation()} style={{width:'90%', maxWidth:400, padding:24, borderRadius:24, border:'1px solid var(--neon-cyan)', background:'#0a0a0a'}}>
                         <div style={{textAlign:'center', marginBottom:20}}>
                             <h2 className="text-neon">Plush Pack</h2>
+                            <div className="text-dim" style={{fontSize:12}}>LIMITED EDITION</div>
                             <img src={BLUPPIE_NFT_URL} style={{width:150, margin:'20px 0'}} />
                             <div className="text-dim">{packsSold} / {TOTAL_PACK_SUPPLY} MINTED</div>
                         </div>
-                        <button className="cta-btn" onClick={handlePackPurchase}>MINT FOR {PACK_PRICE.toFixed(2)} TON</button>
+                        <div className="holo-panel" style={{padding:12, display:'flex', justifyContent:'space-between'}}>
+                            <span>COST:</span>
+                            <span className="text-neon" style={{fontWeight:700}}>{PACK_PRICE.toFixed(2)} TON</span>
+                        </div>
+                        <button className="cta-btn" onClick={handlePackPurchase}>MINT NOW</button>
                     </div>
                 </div>
             )}
@@ -291,13 +402,13 @@ function App() {
 
                 <nav className="bottom-nav">
                     <div className={`nav-item ${activeTab === 'Menu' ? 'active' : ''}`} onClick={() => setActiveTab('Menu')}>
-                        <Icons.Menu /><span style={{marginTop:4}}>Home</span>
+                        <Icons.Menu /><span>Home</span>
                     </div>
                     <div className={`nav-item ${activeTab === 'Marketplace' ? 'active' : ''}`} onClick={() => setActiveTab('Marketplace')}>
-                        <Icons.Market /><span style={{marginTop:4}}>Marketplace</span>
+                        <Icons.Market /><span>Market</span>
                     </div>
                     <div className={`nav-item ${activeTab === 'Profile' ? 'active' : ''}`} onClick={() => setActiveTab('Profile')}>
-                        <Icons.Profile /><span style={{marginTop:4}}>Profile</span>
+                        <Icons.Profile /><span>Profile</span>
                     </div>
                 </nav>
             </div>

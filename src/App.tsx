@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Icons } from './Icons';
 import './index.css';
+import WebApp from '@twa-dev/sdk';
+import { TonConnectButton, useTonAddress, useTonConnectUI } from '@tonconnect/ui-react';
 
 // --- API AYARLARI ---
-// Vercel'de Environment Variable olarak VITE_API_URL tanımlayabilirsin.
-// Tanımlı değilse localhost:8000'e bağlanır.
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
-// --- YARDIMCI FONKSİYONLAR ---
 async function apiCall(endpoint, method = 'GET', body = null) {
     const options = {
         method,
@@ -36,7 +35,6 @@ const TON_LOGO_URL = "https://ton.org/icons/custom/ton_logo.svg";
 const COMMISSION_PIE = 0.001; 
 const COMMISSION_TON = 0.03;  
 const TOTAL_PACK_SUPPLY = 1000;
-const INITIAL_PACK_SOLD_COUNT = 10; 
 const PACK_PRICE = 3.00; 
 
 const PIE_USD_PRICE = 0.0000013; 
@@ -455,7 +453,6 @@ function BalanceTooltipModal({ show, onClose, usd, pie, price }) {
 
 function StakingPage({ handleBack, pieBalance, showToast }) {
     const [stakeAmount, setStakeAmount] = useState('');
-    // pieBalance string gelebilir, onu parse et
     const numericPieBalance = parseFloat(typeof pieBalance === 'string' ? pieBalance.replace(/,/g, '') : pieBalance);
     const amount = parseFloat(stakeAmount);
     const dailyEarnings = amount * (1.20 / 365);
@@ -503,7 +500,6 @@ function StakingPage({ handleBack, pieBalance, showToast }) {
                 />
                 {amount > 0 && !isNaN(amount) && (
                     <div style={{ padding: '10px', background: 'rgba(0,255,157,0.1)', borderRadius: '8px', border: '1px solid var(--neon-green)', marginBottom: '15px', fontSize: '14px' }}>
-                        {/* FIXED: Formatted Number */}
                         Est. Daily Yield: <strong className="text-green">+{dailyEarnings.toLocaleString('en-US', {maximumFractionDigits: 2})} $PIE</strong>
                     </div>
                 )}
@@ -546,12 +542,19 @@ function TransactionHistoryPage({ handleBack, history }) {
 // --- MAIN APP ---
 
 function App() {
+    // --- TELEGRAM & TON HOOKS ---
+    const userFriendlyAddress = useTonAddress(); 
+    const [tonConnectUI] = useTonConnectUI();
+    const [telegramUser, setTelegramUser] = useState(null);
+
+    // --- STATE ---
     const [userPieBalance, setUserPieBalance] = useState(0); 
     const [userTonBalance, setUserTonBalance] = useState(0);
     const [userInventory, setUserInventory] = useState([]);
-    const [walletAddress, setWalletAddress] = useState("UQC0GE6N…BP3HFsE_"); // Varsayılan Demo Adres
+    // WalletAddress artık TON Connect'ten geliyor, o yüzden default state'i kaldırdık veya fallback yaptık
+    const walletAddress = userFriendlyAddress || "0xDisconnected"; 
+
     const [activeTab, setActiveTab] = useState('Menu'); 
-    
     const [showGetPieModal, setShowGetPieModal] = useState(false);
     const [showSocialsModal, setShowSocialsModal] = useState(false);
     const [showStakingPage, setShowStakingPage] = useState(false); 
@@ -576,14 +579,21 @@ function App() {
     const [transactionHistory, setTransactionHistory] = useState([]);
     const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
-    // --- EFFECT: Disable Context Menu ---
+    // --- EFFECT: INITIALIZE ---
     useEffect(() => {
+        // Telegram Init
+        if (typeof WebApp !== 'undefined' && WebApp.initDataUnsafe && WebApp.initDataUnsafe.user) {
+            setTelegramUser(WebApp.initDataUnsafe.user);
+            WebApp.expand(); 
+        }
+
+        // Disable Context Menu
         const handleContextMenu = (e) => e.preventDefault();
         document.addEventListener('contextmenu', handleContextMenu);
         return () => document.removeEventListener('contextmenu', handleContextMenu);
     }, []);
 
-    // --- EFFECT: Scroll Lock ---
+    // --- EFFECT: SCROLL LOCK ---
     const isAnyModalOpen = 
         showGetPieModal || showSocialsModal || showSortModal || showFilterModal || 
         showNewPackModal || showBalanceTooltip || showBuyModal || showInventoryDetail;
@@ -594,24 +604,23 @@ function App() {
         return () => { document.body.style.overflow = ''; };
     }, [isAnyModalOpen]);
 
-    // --- DATA FETCHING (BACKEND) ---
+    // --- DATA FETCHING ---
     const fetchUserData = async () => {
+        if (!userFriendlyAddress) return; // Cüzdan bağlı değilse çekme
         try {
-            const data = await apiCall(`/user/${walletAddress}`);
+            const data = await apiCall(`/user/${userFriendlyAddress}`);
             setUserPieBalance(data.balance_pie);
             setUserTonBalance(data.balance_ton);
             setUserInventory(data.inventory);
             setTransactionHistory(data.transactions);
         } catch (e) {
             console.error("User data fetch error", e);
-            // Hata durumunda (Backend yoksa) demo veri gösterilebilir veya hata basılabilir.
         }
     };
 
     const fetchMarketplace = async () => {
         try {
-            const data = await apiCall(`/marketplace/${walletAddress}`);
-            // Sorting Logic
+            const data = await apiCall(`/marketplace/${userFriendlyAddress || 'guest'}`);
             let list = data;
             if(marketplaceSearch) {
                 list = list.filter(item => item.name.toLowerCase().includes(marketplaceSearch.toLowerCase()) || item.item_number.toString().includes(marketplaceSearch));
@@ -630,12 +639,14 @@ function App() {
     useEffect(() => {
         fetchUserData();
         fetchMarketplace();
-    }, [walletAddress, activeTab, currentSort, marketplaceSearch]);
+    }, [userFriendlyAddress, activeTab, currentSort, marketplaceSearch]);
 
     // --- ACTIONS ---
-
     const currentUSDValue = (userPieBalance * PIE_USD_PRICE).toFixed(2);
     const formattedPieBalance = userPieBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const displayAddress = userFriendlyAddress 
+        ? userFriendlyAddress.slice(0, 4) + '...' + userFriendlyAddress.slice(-4) 
+        : 'Connect Wallet';
 
     const showToast = (message, type = 'success') => {
         setToast({ show: true, message, type });
@@ -682,10 +693,11 @@ function App() {
     };
     
     const handlePurchase = async (nftId, price, currency) => {
+        if (!userFriendlyAddress) { showToast("Connect Wallet First!", "error"); return; }
         try {
             const res = await apiCall('/marketplace/buy', 'POST', {
                 nft_id: nftId,
-                buyer_address: walletAddress
+                buyer_address: userFriendlyAddress
             });
             if(res.status === 'success') {
                 showToast(`Acquired NFT!`, 'success');
@@ -699,9 +711,10 @@ function App() {
     };
     
     const handlePackPurchase = async () => {
+        if (!userFriendlyAddress) { showToast("Connect Wallet First!", "error"); return; }
         try {
             const res = await apiCall('/packs/buy', 'POST', {
-                wallet_address: walletAddress
+                wallet_address: userFriendlyAddress
             });
             if(res.status === 'success') {
                 showToast(`Pack Unlocked! NFT #${res.nft.item_number} added.`, 'success');
@@ -799,14 +812,24 @@ function App() {
                 <React.Fragment>
                     <div className="holo-panel">
                         <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
-                            <img src={BLUPPIE_NFT_URL} style={{ width: '64px', height: '64px', borderRadius: '50%', border: '2px solid var(--neon-cyan)', padding: 2 }} />
+                            <img 
+                                src={telegramUser?.photo_url || BLUPPIE_NFT_URL} 
+                                style={{ width: '64px', height: '64px', borderRadius: '50%', border: '2px solid var(--neon-cyan)', padding: 2 }} 
+                            />
                             <div style={{ marginLeft: '15px' }}>
-                                <div style={{ fontSize: '20px', fontWeight: '700' }}>BluppieNFT</div>
-                                <div style={{ fontSize: '12px', color: walletAddress === '0xDisconnected' ? 'var(--neon-red)' : 'var(--neon-green)', fontFamily: 'monospace' }}>
-                                    {walletAddress === '0xDisconnected' ? 'not connected' : ' ' + walletAddress.slice(0, 6) + '...'}
+                                <div style={{ fontSize: '20px', fontWeight: '700' }}>
+                                    {telegramUser ? (telegramUser.first_name + ' ' + (telegramUser.last_name || '')) : 'Guest User'}
+                                </div>
+                                <div style={{ fontSize: '12px', color: !userFriendlyAddress ? 'var(--neon-red)' : 'var(--neon-green)', fontFamily: 'monospace' }}>
+                                    {userFriendlyAddress ? displayAddress : 'Wallet Not Connected'}
                                 </div>
                             </div>
                         </div>
+
+                        <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'center' }}>
+                             <TonConnectButton />
+                        </div>
+
                         <div style={{ marginBottom: '10px' }}>
                             <button className="menu-item-button" style={{ width: '100%', background: 'transparent', color: '#fff', padding: '15px 0', display: 'flex', justifyContent: 'space-between', cursor:'pointer', border:'none', borderBottom:'1px solid var(--color-glass-border)' }} onClick={() => setShowInventoryPage(true)}>
                                 <span style={{display:'flex', alignItems:'center', gap:10}}><Icons.Market /> Inventory</span> <span>&gt;</span>
@@ -818,7 +841,7 @@ function App() {
                                 <span style={{display:'flex', alignItems:'center', gap:10}}><Icons.History /> Transaction History</span> <span>&gt;</span>
                             </button>
                         </div>
-                        {walletAddress !== '0xDisconnected' && <button className="cta-btn" style={{background: 'transparent', border: '1px solid var(--neon-red)', color: 'var(--neon-red)'}} onClick={() => {setWalletAddress('0xDisconnected'); showToast('WALLET DISCONNECTED', 'error')}}>DISCONNECT WALLET</button>}
+                        {userFriendlyAddress && <button className="cta-btn" style={{background: 'transparent', border: '1px solid var(--neon-red)', color: 'var(--neon-red)'}} onClick={() => tonConnectUI.disconnect()}>DISCONNECT WALLET</button>}
                     </div>
 
                     <div className="holo-panel"> 
@@ -827,7 +850,7 @@ function App() {
                             <span className="text-dim">Total Invites</span>
                             <span className="text-neon" style={{ fontSize: '18px', fontWeight: '800' }}>0</span>
                         </div>
-                        <button className="cta-btn" onClick={async () => { await navigator.clipboard.writeText(walletAddress); showToast('UPLINK COPIED', 'success'); }}>Invite Friends</button>
+                        <button className="cta-btn" onClick={async () => { await navigator.clipboard.writeText(userFriendlyAddress); showToast('UPLINK COPIED', 'success'); }}>Invite Friends</button>
                     </div>
                 </React.Fragment>
             );

@@ -4,13 +4,14 @@ import App from './App'
 import './index.css'
 import { TonConnectUIProvider } from '@tonconnect/ui-react';
 
-// Manifest dosyasının yolu. 
-// Vercel'e atınca kendi domainin ile güncellersen iyi olur ama şu an da çalışır.
-const manifestUrl = "public/tonconnect-manifest.json";
+// --- MANIFEST URL DÜZELTMESİ ---
+// window.location.origin -> Mevcut site adresini alır (localhost veya vercel.app)
+const manifestUrl = window.location.origin + "/tonconnect-manifest.json";
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <TonConnectUIProvider manifestUrl={manifestUrl}>
+    {/* errorBoundary false yaparak ufak hatalarda beyaz ekranı engeller */}
+    <TonConnectUIProvider manifestUrl={manifestUrl} errorBoundary={false}>
       <App />
     </TonConnectUIProvider>
   </React.StrictMode>,

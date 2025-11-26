@@ -1,25 +1,25 @@
 import React from 'react';
 
 export const Icons = {
-    // Daha yumuşak, yuvarlak dönüşlü Geri Ok
+    // Yumuşak, yuvarlak dönüşlü Geri Ok
     Back: () => (
         <svg className="icon-svg" viewBox="0 0 24 24">
             <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20c1.1 0 2-.9 2-2s-.9-2-2-2z"/>
         </svg>
     ),
-    // "Home" sekmesi için Hamburger menü yerine "Ev" ikonu (Daha mantıklı ve sevimli)
+    // "Home" sekmesi için Ev (House) ikonu
     Menu: () => (
         <svg className="icon-svg" viewBox="0 0 24 24">
             <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8c0 1.1.9 2 2 2h3z" style={{strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: 0}}/>
         </svg>
     ),
-    // Daha yuvarlak hatlı Mağaza
+    // Yuvarlak hatlı Mağaza
     Market: () => (
         <svg className="icon-svg" viewBox="0 0 24 24">
             <path d="M20 4H4v2h16V4zm1 10v-2l-1-5H4l-1 5v2h1v6h10v-6h4v6h2v-6h1zm-9 4H6v-4h6v4z"/>
         </svg>
     ),
-    // Yuvarlak kafa ve vücut hatlı Profil
+    // Yuvarlak hatlı Profil
     Profile: () => (
         <svg className="icon-svg" viewBox="0 0 24 24">
             <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-2c0-2.66-5.33-4-8-4z"/>
@@ -59,16 +59,22 @@ export const Icons = {
             <path d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"/>
         </svg>
     ),
-    // Alternatif: Yuvarlak hatlı Kilit (Lock)
+    // Staking için Kilit (Lock) ikonu - Yuvarlak hatlı
     Stake: () => (
         <svg className="icon-svg" viewBox="0 0 24 24">
             <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
         </svg>
     ),
-    // Daha yuvarlak hatlı Arkadaş Grubu
+    // Yuvarlak hatlı Arkadaş Grubu
     Friends: () => (
         <svg className="icon-svg" viewBox="0 0 24 24">
             <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
+        </svg>
+    ),
+    // Menü listeleri için Sağ Ok
+    ArrowRight: () => (
+        <svg className="icon-svg" style={{width:20, height:20}} viewBox="0 0 24 24">
+            <path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/>
         </svg>
     )
 };

@@ -787,7 +787,7 @@ function App() {
         if (showTransactionHistoryPage) return <TransactionHistoryPage handleBack={handleCloseFullPageViews} history={transactionHistory} />;
         
         if (activeTab === 'Menu') {
-            // MENU SEKME İÇERİĞİ (Ana Sayfa İçeriği)
+            // MENU SEKME İÇERİĞİ (Home)
             return (
                 <React.Fragment>
                     <div className="holo-panel pulse-glow">
@@ -826,7 +826,7 @@ function App() {
                 </React.Fragment>
             );
         } else if (activeTab === 'Marketplace') {
-            // MARKETPLACE İÇERİĞİ (Değişmedi, sadece renkler CSS ile güncelleniyor)
+            // MARKETPLACE İÇERİĞİ
             const currentBalanceAmount = currentCurrency === 'TON' ? userTonBalance : userPieBalance;
             const displayedBalance = currentBalanceAmount.toFixed(2) + ' ' + currentCurrency;
             return (
@@ -863,7 +863,7 @@ function App() {
                 </div>
             );
         } else if (activeTab === 'Profile') {
-            // PROFILE İÇERİĞİ (Kullanıcı Bilgileri ve Menü)
+            // PROFILE İÇERİĞİ (Kullanıcı Profili ve Menü Butonları)
             return (
                 <React.Fragment>
                     <div className="holo-panel pulse-glow">
@@ -886,15 +886,19 @@ function App() {
                              <TonConnectButton />
                         </div>
 
+                        {/* BURASI GÜNCELLENDİ: Metin rengi ve Ok İkonu */}
                         <div style={{ marginBottom: '10px' }}>
                             <button className="menu-item-button" style={{ width: '100%', background: 'transparent', color: 'var(--color-text-primary)', padding: '15px 0', display: 'flex', justifyContent: 'space-between', cursor:'pointer', border:'none', borderBottom:'1px solid var(--color-glass-border)' }} onClick={() => setShowInventoryPage(true)}>
-                                <span style={{display:'flex', alignItems:'center', gap:10}}><Icons.Market /> Inventory</span> <span>&gt;</span>
+                                <span style={{display:'flex', alignItems:'center', gap:10}}><Icons.Market /> Inventory</span> 
+                                <Icons.ArrowRight />
                             </button>
                             <button className="menu-item-button" style={{ width: '100%', background: 'transparent', color: 'var(--color-text-primary)', padding: '15px 0', display: 'flex', justifyContent: 'space-between', cursor:'pointer', border:'none', borderBottom:'1px solid var(--color-glass-border)' }} onClick={() => setShowStakingPage(true)}>
-                                <span style={{display:'flex', alignItems:'center', gap:10}}><Icons.Stake /> Staking</span> <span>&gt;</span>
+                                <span style={{display:'flex', alignItems:'center', gap:10}}><Icons.Stake /> Staking</span> 
+                                <Icons.ArrowRight />
                             </button>
                             <button className="menu-item-button" style={{ width: '100%', background: 'transparent', color: 'var(--color-text-primary)', padding: '15px 0', display: 'flex', justifyContent: 'space-between', cursor:'pointer', border:'none' }} onClick={() => setShowTransactionHistoryPage(true)}>
-                                <span style={{display:'flex', alignItems:'center', gap:10}}><Icons.History /> Transaction History</span> <span>&gt;</span>
+                                <span style={{display:'flex', alignItems:'center', gap:10}}><Icons.History /> Transaction History</span> 
+                                <Icons.ArrowRight />
                             </button>
                         </div>
                     </div>

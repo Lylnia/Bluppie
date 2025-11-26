@@ -632,8 +632,8 @@ function App() {
                 const jettonData = await jettonRes.json();
 
                 if (jettonData && jettonData.balances) {
-                    // SORUN ÇÖZÜCÜ: Akıllı Eşleştirme (Fuzzy Match)
-                    // Kontrat adresinin sadece son 20 karakterine bakıyoruz (EQ/UQ karmaşasını çözer)
+                    // SORUN ÇÖZÜMÜ: Kontrat adresinin EQ/UQ karışıklığını çözmek için
+                    // PIE_TOKEN_CONTRACT'ın son 20 karakteri ile gelen adresin son 20 karakterini karşılaştır.
                     const targetSuffix = PIE_TOKEN_CONTRACT.slice(-20); 
                     
                     const pieToken = jettonData.balances.find(token => 
@@ -642,6 +642,7 @@ function App() {
 
                     if (pieToken) {
                         const decimals = pieToken.jetton.decimals || 9;
+                        // Bakiyeyi string olsa bile parseFloat ile al ve doğru ondalık hassasiyetine böl
                         const rawBalance = parseFloat(pieToken.balance);
                         setUserPieBalance(rawBalance / Math.pow(10, decimals));
                     } else {

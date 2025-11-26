@@ -5,12 +5,11 @@ import WebApp from '@twa-dev/sdk';
 import { TonConnectButton, useTonAddress, useTonConnectUI } from '@tonconnect/ui-react';
 
 // --- GÜVENLİ DEĞİŞKENLER (.env) ---
-// Vercel'de 'Settings -> Environment Variables' kısmına VITE_TONAPI_KEY eklemeyi unutma!
 const TONAPI_KEY = import.meta.env.VITE_TONAPI_KEY; 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 // --- SABİTLER ---
-// Senin PIE Token Kontratın (User-friendly EQ formatında kalması uygundur, eşleşmeyi biz yapacağız)
+// PIE Token Kontratı (Çalışan Raw formatında kalıyor)
 const PIE_TOKEN_CONTRACT = "0:e0207601eb9ea16324c92a1d1b74ed8004d01c2d76b8e7022126b02980913c36"; 
 
 const BLUPPIE_NFT_URL = "https://i.imgur.com/TDukTkX.png"; 
@@ -610,7 +609,14 @@ function App() {
     // --- DATA FETCHING (TONAPI) ---
     
     const fetchAllData = async () => {
-        if (!userFriendlyAddress) return;
+        // HATA ÇÖZÜMÜ 1: Cüzdan bağlı değilse (adres yoksa) bakiyeleri sıfırla ve API çağrısı yapma
+        if (!userFriendlyAddress) {
+            setUserTonBalance(0);
+            setUserPieBalance(0);
+            // Envanter/Backend verisini de temizleyebiliriz, ancak demo verisi tutmak istiyorsak bu kısmı pas geçebiliriz.
+            // setUserInventory([]); 
+            return;
+        }
 
         const headers = TONAPI_KEY ? { 'Authorization': `Bearer ${TONAPI_KEY}` } : {};
 
@@ -624,7 +630,7 @@ function App() {
                 }
             }
 
-            // 2. PIE BAKİYESİ (Raw/User-friendly Adres Eşleştirmeyi Deniyoruz)
+            // 2. PIE BAKİYESİ
             const jettonRes = await fetch(`https://tonapi.io/v2/accounts/${userFriendlyAddress}/jettons`, { headers });
             
             if (jettonRes.ok) {
@@ -632,32 +638,23 @@ function App() {
 
                 if (jettonData && jettonData.balances) {
                     
-                    // Jetonun son 20 karakterini küçük harfe çevirerek kullanıyoruz.
-                    // Bu, TonAPI'den gelen Raw (0:) veya EQ formatındaki adresi bizim EQ sabitimizle eşleştirmeye çalışır.
-                    const targetSuffix = PIE_TOKEN_CONTRACT.slice(-20).toLowerCase(); 
-                    
+                    // PIE_TOKEN_CONTRACT (Raw format) ile tam eşleşme yap
                     const pieToken = jettonData.balances.find(token => {
-                        // Gelen adresin son 20 karakterini de küçük harfe çevirip karşılaştır.
-                        const tokenAddressSuffix = token.jetton.address.slice(-20).toLowerCase();
-                        
-                        // Hem suffix hem de sembolü 'PIE' olan kaydı kontrol et.
-                        return tokenAddressSuffix === targetSuffix && token.jetton.symbol === 'PIE';
+                        return token.jetton.address === PIE_TOKEN_CONTRACT;
                     });
 
                     if (pieToken) {
-                        const decimals = pieToken.jetton.decimals || 9; // PIE'nin decimal değerini kontrol et!
+                        const decimals = pieToken.jetton.decimals || 9; 
                         const rawBalance = parseFloat(pieToken.balance);
                         const calculatedBalance = rawBalance / Math.pow(10, decimals);
                         setUserPieBalance(calculatedBalance);
-                        console.log(`[PIE SUCCESS] Bakiye Alındı! Kontrat: ${pieToken.jetton.address}. Bakiye: ${calculatedBalance}`);
                     } else {
                         setUserPieBalance(0);
-                        console.log(`[PIE FAIL] Eşleşen kontrat/sembol bulunamadı. Aranan Suffix: ${targetSuffix}`);
-                        console.log("[PIE FAIL] Mevcut Jetonlar:", jettonData.balances.map(t => ({ symbol: t.jetton.symbol, address: t.jetton.address })));
                     }
                 }
             }
         } catch (e) { 
+            // Hata ayıklama konsol çıktıları temizlendi, hata sadece console.error olarak kalıyor.
             console.error("TonAPI Fetch Error:", e); 
         }
 

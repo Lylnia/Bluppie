@@ -59,10 +59,10 @@ export const Icons = {
             <path d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"/>
         </svg>
     ),
-    // Staking için "Elmas/Mücevher" ikonu (Bluppie temasına daha uygun)
+    // Alternatif: Yuvarlak hatlı Kilit (Lock)
     Stake: () => (
         <svg className="icon-svg" viewBox="0 0 24 24">
-            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 12l-5-5h10l-5 5z"/>
+            <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
         </svg>
     ),
     // Daha yuvarlak hatlı Arkadaş Grubu

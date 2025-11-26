@@ -1,8 +1,11 @@
+/* --- FONTLARI YÜKLE --- */
+@import url('https://fonts.googleapis.com/css2?family=Poetsen+One&family=Poppins:wght@400;600;700&display=swap');
+
 :root {
   /* --- YENİ TEMEL RENK PALETİ (Bluppie Pop) --- */
   --color-bg-deep: #FFFFFF;        /* Arka Plan: Saf Beyaz */
-  --color-glass-panel: rgba(240, 240, 255, 0.7); /* Panel Arka Planı: Çok hafif saydam */
-  --color-glass-border: rgba(100, 100, 100, 0.1); /* Panel Kenarlığı: Çok hafif gri */
+  --color-glass-panel: rgba(240, 240, 255, 0.7); /* Panel Arka Planı */
+  --color-glass-border: rgba(100, 100, 100, 0.1); /* Panel Kenarlığı */
   --color-glass-highlight: rgba(100, 100, 100, 0.05);
   
   --color-text-primary: #30336b;     /* Ana Metin: Koyu İndigo Mavi */
@@ -14,8 +17,9 @@
   --neon-green: #34D186;             /* Başarı/Onay: Parlak Nane Yeşili */
   --neon-red: #FF4040;               /* Hata/Uyarı: Canlı Kırmızı */
   
-  --font-head: 'Poetsen One', sans-serif;
-  --font-body: 'Poppins', sans-serif;
+  /* --- YENİ FONT TANIMLARI --- */
+  --font-head: 'Poetsen One', sans-serif; /* Başlıklar: Sevimli ve Yuvarlak */
+  --font-body: 'Poppins', sans-serif;     /* Gövde: Temiz ve Modern */
   
   --glow-box: 0 0 15px rgba(255, 92, 141, 0.3); /* Pembe Parıltı */
   --glow-text: 0 0 5px rgba(255, 92, 141, 0.4); /* Pembe Metin Parıltısı */
@@ -45,8 +49,8 @@ img {
 
 body {
   font-family: var(--font-body);
-  background-color: var(--color-bg-deep); /* SAF BEYAZ */
-  color: var(--color-text-primary); /* KOYU İNDİGO */
+  background-color: var(--color-bg-deep);
+  color: var(--color-text-primary);
   min-height: 100vh;
   padding: 16px;
   padding-bottom: 110px;
@@ -108,10 +112,10 @@ body::after {
 
 /* --- HOLO PANELS --- */
 .holo-panel {
-  background: var(--color-glass-panel); /* Hafif Saydam Beyaz */
+  background: var(--color-glass-panel);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid var(--color-glass-border); /* Çok açık gri kenarlık */
+  border: 1px solid var(--color-glass-border);
   border-radius: 24px;
   padding: 20px;
   margin-bottom: 16px;
@@ -128,7 +132,7 @@ body::after {
   left: 0;
   right: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.1), transparent); /* Koyu çizgi */
+  background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.1), transparent);
 }
 
 /* --- TYPOGRAPHY --- */
@@ -154,7 +158,7 @@ h2, .balance-usd, .nft-title, .game-title, .modal-title {
 }
 
 .balance-pie {
-  color: var(--neon-purple); /* PEMBE VURGU */
+  color: var(--neon-purple);
   font-size: 18px;
   font-family: var(--font-head);
   font-weight: 600;
@@ -171,7 +175,7 @@ h2, .balance-usd, .nft-title, .game-title, .modal-title {
 
 .action-btn {
   background: transparent;
-  color: var(--neon-cyan); /* MAVİ VURGU */
+  color: var(--neon-cyan);
   border: 1px solid var(--neon-cyan);
   border-radius: 16px;
   padding: 14px;
@@ -187,7 +191,7 @@ h2, .balance-usd, .nft-title, .game-title, .modal-title {
 }
 
 .action-btn:hover, .marketplace-button:hover {
-  background: rgba(96, 179, 243, 0.2); /* Mavi hover */
+  background: rgba(96, 179, 243, 0.2);
   border-color: var(--neon-cyan);
   box-shadow: 0 0 15px rgba(96, 179, 243, 0.4);
   transform: translateY(-2px);
@@ -195,8 +199,8 @@ h2, .balance-usd, .nft-title, .game-title, .modal-title {
 
 .cta-btn {
   width: 100%;
-  background: var(--neon-purple); /* PEMBE VURGU */
-  color: #fff; /* Buton içi beyaz metin */
+  background: var(--neon-purple);
+  color: #fff;
   border: none;
   border-radius: 16px;
   padding: 16px;
@@ -309,7 +313,7 @@ h2, .balance-usd, .nft-title, .game-title, .modal-title {
 /* --- INPUTS --- */
 .search-input, input[type="number"], input[type="text"] {
   width: 100%;
-  background: rgba(255, 92, 141, 0.05); /* Çok hafif pembe arka plan */
+  background: rgba(255, 92, 141, 0.05);
   border: 1px solid var(--color-glass-border);
   border-radius: 12px;
   padding: 14px 16px;
@@ -330,9 +334,9 @@ h2, .balance-usd, .nft-title, .game-title, .modal-title {
 
 /* --- TAGS & BADGES --- */
 .card-price-tag {
-  background: var(--neon-cyan); /* MAVİ VURGU */
+  background: var(--neon-cyan);
   border: 1px solid var(--neon-cyan);
-  color: var(--color-bg-deep); /* Açık arka plan renginde yazı */
+  color: var(--color-bg-deep);
   border-radius: 8px;
   padding: 6px 10px;
   font-family: var(--font-head);
@@ -343,7 +347,7 @@ h2, .balance-usd, .nft-title, .game-title, .modal-title {
   justify-content: center;
   width: 90%;
   margin-top: 10px;
-  text-shadow: 0 0 3px rgba(48, 51, 107, 0.5); /* Koyu gölge */
+  text-shadow: 0 0 3px rgba(48, 51, 107, 0.5);
 }
 
 /* --- MODALS --- */
@@ -354,7 +358,7 @@ h2, .balance-usd, .nft-title, .game-title, .modal-title {
 }
 
 .modal-content {
-  background: #ffffff; /* Modal içi saf beyaz */
+  background: #ffffff;
   border: 1px solid var(--color-glass-border); 
   border-top: 1px solid var(--neon-purple);
   box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.1);

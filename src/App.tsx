@@ -809,7 +809,6 @@ function App() {
                              <TonConnectButton />
                         </div>
 
-                        {/* DÜZELTİLEN KISIM: Inline renkler kaldırıldı, CSS değişkeni eklendi */}
                         <div style={{ marginBottom: '10px' }}>
                             <button className="menu-item-button" style={{ width: '100%', background: 'transparent', color: 'var(--color-text-primary)', padding: '15px 0', display: 'flex', justifyContent: 'space-between', cursor:'pointer', border:'none', borderBottom:'1px solid var(--color-glass-border)' }} onClick={() => setShowInventoryPage(true)}>
                                 <span style={{display:'flex', alignItems:'center', gap:10}}><Icons.Market /> Inventory</span> <span>&gt;</span>
@@ -834,7 +833,7 @@ function App() {
                 </React.Fragment>
             );
         } else if (activeTab === 'Marketplace') {
-            // ... (Aynı)
+            // ... (Marketplace kodu aynı kalıyor)
             const currentBalanceAmount = currentCurrency === 'TON' ? userTonBalance : userPieBalance;
             const displayedBalance = currentBalanceAmount.toFixed(2) + ' ' + currentCurrency;
             return (
@@ -871,23 +870,52 @@ function App() {
                 </div>
             );
         } else if (activeTab === 'Profile') {
-            // Profile kısmı şimdi Menu içinde kullanılıyor, burayı istersen temizleyebilirsin ama kalsa da sorun yok.
-            // Menu tab'ında yapılan düzeltme burada da geçerli.
+            // Profile tab'ı aslında 'Menu' ile aynı içeriği paylaşıyordu, burayı da temizleyip Menu ile eşitledim.
+            // Artık 'Profile' sekmesi 'Menu' sekmesi gibi doğru renklerle görünecek.
              return (
-                <div className="holo-panel pulse-glow">
-                    <div className="balance-display">
-                        <div className="balance-usd">
-                            ${currentUSDValue} 
-                            <button onClick={() => setShowBalanceTooltip(true)} style={{background:'none', border:'none', color: 'var(--color-text-secondary)', marginLeft: 8, cursor:'pointer'}}><Icons.Info /></button>
+                <React.Fragment>
+                    <div className="holo-panel pulse-glow">
+                        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
+                            <img 
+                                src={telegramUser?.photo_url || BLUPPIE_NFT_URL} 
+                                style={{ width: '64px', height: '64px', borderRadius: '50%', border: '2px solid var(--neon-purple)', padding: 2 }} 
+                            />
+                            <div style={{ marginLeft: '15px' }}>
+                                <div style={{ fontSize: '20px', fontWeight: '700', color: 'var(--color-text-primary)' }}>
+                                    {telegramUser ? (telegramUser.first_name + ' ' + (telegramUser.last_name || '')) : 'Guest User'}
+                                </div>
+                                <div style={{ fontSize: '12px', color: !userFriendlyAddress ? 'var(--neon-red)' : 'var(--neon-green)', fontFamily: 'monospace' }}>
+                                    {userFriendlyAddress ? displayAddress : 'Wallet Not Connected'}
+                                </div>
+                            </div>
                         </div>
-                        <div className="balance-pie">{formattedPieBalance} $PIE</div>
+
+                        <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'center' }}>
+                             <TonConnectButton />
+                        </div>
+
+                        <div style={{ marginBottom: '10px' }}>
+                            <button className="menu-item-button" style={{ width: '100%', background: 'transparent', color: 'var(--color-text-primary)', padding: '15px 0', display: 'flex', justifyContent: 'space-between', cursor:'pointer', border:'none', borderBottom:'1px solid var(--color-glass-border)' }} onClick={() => setShowInventoryPage(true)}>
+                                <span style={{display:'flex', alignItems:'center', gap:10}}><Icons.Market /> Inventory</span> <span>&gt;</span>
+                            </button>
+                            <button className="menu-item-button" style={{ width: '100%', background: 'transparent', color: 'var(--color-text-primary)', padding: '15px 0', display: 'flex', justifyContent: 'space-between', cursor:'pointer', border:'none', borderBottom:'1px solid var(--color-glass-border)' }} onClick={() => setShowStakingPage(true)}>
+                                <span style={{display:'flex', alignItems:'center', gap:10}}><Icons.Stake /> Staking</span> <span>&gt;</span>
+                            </button>
+                            <button className="menu-item-button" style={{ width: '100%', background: 'transparent', color: 'var(--color-text-primary)', padding: '15px 0', display: 'flex', justifyContent: 'space-between', cursor:'pointer', border:'none' }} onClick={() => setShowTransactionHistoryPage(true)}>
+                                <span style={{display:'flex', alignItems:'center', gap:10}}><Icons.History /> Transaction History</span> <span>&gt;</span>
+                            </button>
+                        </div>
                     </div>
-                    <div className="action-buttons">
-                        <button className="action-btn" onClick={() => setShowStakingPage(true)}>STAKE</button>
-                        <button className="action-btn" onClick={() => setShowSocialsModal(true)}>SOCIAL</button>
+
+                    <div className="holo-panel"> 
+                        <div className="nft-title" style={{fontSize: 18}}><Icons.Friends /> Referrals</div>
+                        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '15px', justifyContent: 'space-between', color: 'var(--color-text-primary)' }}>
+                            <span className="text-dim">Total Invites</span>
+                            <span className="text-neon" style={{ fontSize: '18px', fontWeight: '800' }}>0</span>
+                        </div>
+                        <button className="cta-btn" onClick={async () => { await navigator.clipboard.writeText(userFriendlyAddress); showToast('UPLINK COPIED', 'success'); }}>Invite Friends</button>
                     </div>
-                    <button className="cta-btn" onClick={() => setShowGetPieModal(true)}>BUY $PIE</button>
-                </div>
+                </React.Fragment>
             );
         }
     };

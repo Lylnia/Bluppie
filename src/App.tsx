@@ -3,6 +3,8 @@ import { Icons } from './Icons';
 import './index.css';
 import WebApp from '@twa-dev/sdk';
 import { TonConnectButton, useTonAddress, useTonConnectUI } from '@tonconnect/ui-react';
+// YENİ KÜTÜPHANE İÇE AKTARIMI: Adres formatlarını işlemek için
+import { Address } from '@ton/core'; 
 
 // --- GÜVENLİ DEĞİŞKENLER (.env) ---
 // Vercel'de 'Settings -> Environment Variables' kısmına VITE_TONAPI_KEY eklemeyi unutma!
@@ -624,7 +626,7 @@ function App() {
                 }
             }
 
-            // 2. PIE BAKİYESİ (Raw/User-friendly Adres Eşleştirmeyi Deniyoruz)
+            // 2. PIE BAKİYESİ (TonAPI)
             const jettonRes = await fetch(`https://tonapi.io/v2/accounts/${userFriendlyAddress}/jettons`, { headers });
             
             if (jettonRes.ok) {
@@ -632,16 +634,35 @@ function App() {
 
                 if (jettonData && jettonData.balances) {
                     
-                    // Jetonun son 20 karakterini yine kullanıyoruz, bu hem EQ hem de 0: formatında güvenilir bir eşleşme noktasıdır.
-                    const targetSuffix = PIE_TOKEN_CONTRACT.slice(-20).toLowerCase(); 
+                    // Kütüphane ile EQ adresini Raw (0:) adrese dönüştürmeyi dene
+                    let targetRawAddress = null;
+                    try {
+                        const targetAddress = Address.parse(PIE_TOKEN_CONTRACT);
+                        targetRawAddress = targetAddress.toString({ bounceable: false, testOnly: false, urlSafe: true });
+                        console.log(`[PIE DEBUG] PIE EQ Address parsed to Raw: ${targetRawAddress}`);
+                    } catch (e) {
+                        console.error("[PIE ERROR] Could not parse PIE_TOKEN_CONTRACT using @ton/core.", e);
+                        // Eğer dönüştürme başarısız olursa, eski suffix karşılaştırmasını kullanırız
+                    }
                     
-                    const pieToken = jettonData.balances.find(token => {
-                        // Gelen adresin son 20 karakteri ile sabit adresi karşılaştır
-                        const tokenAddressSuffix = token.jetton.address.slice(-20).toLowerCase();
-                        
-                        // Hem suffix hem de sembolü kontrol et, ayrıca adresin '0' olup olmadığını da kontrol et.
-                        return tokenAddressSuffix === targetSuffix && token.jetton.symbol === 'PIE';
-                    });
+                    let pieToken = null;
+
+                    if (targetRawAddress) {
+                        // Raw adresi kullanarak tam eşleşmeyi dene
+                        pieToken = jettonData.balances.find(token => 
+                            token.jetton.address === targetRawAddress || token.jetton.address === PIE_TOKEN_CONTRACT
+                        );
+                    }
+                    
+                    // Eğer tam eşleşme bulamazsa, sembol ve suffix eşleşmesini kullanarak tekrar dene
+                    if (!pieToken) {
+                        const targetSuffix = PIE_TOKEN_CONTRACT.slice(-20).toLowerCase(); 
+                        pieToken = jettonData.balances.find(token => {
+                            const tokenAddressSuffix = token.jetton.address.slice(-20).toLowerCase();
+                            return tokenAddressSuffix === targetSuffix && token.jetton.symbol === 'PIE';
+                        });
+                    }
+
 
                     if (pieToken) {
                         const decimals = pieToken.jetton.decimals || 9; // PIE'nin decimal değerini kontrol et!
@@ -651,7 +672,7 @@ function App() {
                         console.log(`[PIE SUCCESS] Bakiye Alındı! Kontrat: ${pieToken.jetton.address}. Bakiye: ${calculatedBalance}`);
                     } else {
                         setUserPieBalance(0);
-                        console.log(`[PIE FAIL] Eşleşen kontrat/sembol bulunamadı. Aranan Suffix: ${targetSuffix}`);
+                        console.log(`[PIE FAIL] Eşleşen kontrat/sembol bulunamadı.`);
                         console.log("[PIE FAIL] Mevcut Jetonlar:", jettonData.balances.map(t => ({ symbol: t.jetton.symbol, address: t.jetton.address })));
                     }
                 }

@@ -612,11 +612,10 @@ function App() {
     const fetchAllData = async () => {
         if (!userFriendlyAddress) return;
 
-        // API KEY'i varsa header'a ekle
         const headers = TONAPI_KEY ? { 'Authorization': `Bearer ${TONAPI_KEY}` } : {};
 
         try {
-            // 1. TON BAKİYESİ (TonAPI)
+            // 1. TON BAKİYESİ
             const tonRes = await fetch(`https://tonapi.io/v2/accounts/${userFriendlyAddress}`, { headers });
             if (tonRes.ok) {
                 const tonData = await tonRes.json();
@@ -625,30 +624,35 @@ function App() {
                 }
             }
 
-            // 2. PIE BAKİYESİ (TonAPI)
+            // 2. PIE BAKİYESİ (Raw/User-friendly Adres Eşleştirmeyi Deniyoruz)
             const jettonRes = await fetch(`https://tonapi.io/v2/accounts/${userFriendlyAddress}/jettons`, { headers });
             
             if (jettonRes.ok) {
                 const jettonData = await jettonRes.json();
 
                 if (jettonData && jettonData.balances) {
-                    // SORUN ÇÖZÜMÜ: Kontrat adresinin EQ/UQ karışıklığını çözmek için
-                    const targetSuffix = PIE_TOKEN_CONTRACT.slice(-20); 
                     
-                    const pieToken = jettonData.balances.find(token => 
-                        token.jetton.address.endsWith(targetSuffix)
-                    );
+                    // Jetonun son 20 karakterini yine kullanıyoruz, bu hem EQ hem de 0: formatında güvenilir bir eşleşme noktasıdır.
+                    const targetSuffix = PIE_TOKEN_CONTRACT.slice(-20).toLowerCase(); 
+                    
+                    const pieToken = jettonData.balances.find(token => {
+                        // Gelen adresin son 20 karakteri ile sabit adresi karşılaştır
+                        const tokenAddressSuffix = token.jetton.address.slice(-20).toLowerCase();
+                        
+                        // Hem suffix hem de sembolü kontrol et, ayrıca adresin '0' olup olmadığını da kontrol et.
+                        return tokenAddressSuffix === targetSuffix && token.jetton.symbol === 'PIE';
+                    });
 
                     if (pieToken) {
                         const decimals = pieToken.jetton.decimals || 9; // PIE'nin decimal değerini kontrol et!
                         const rawBalance = parseFloat(pieToken.balance);
                         const calculatedBalance = rawBalance / Math.pow(10, decimals);
                         setUserPieBalance(calculatedBalance);
-                        console.log(`[PIE DEBUG] PIE Token Found! Contract: ${pieToken.jetton.address}. Raw Balance: ${rawBalance}, Decimals: ${decimals}, Calculated: ${calculatedBalance}`);
+                        console.log(`[PIE SUCCESS] Bakiye Alındı! Kontrat: ${pieToken.jetton.address}. Bakiye: ${calculatedBalance}`);
                     } else {
                         setUserPieBalance(0);
-                        console.log(`[PIE DEBUG] PIE Token NOT Found. Searching for suffix: ${targetSuffix}`);
-                        console.log("[PIE DEBUG] Available Tokens:", jettonData.balances.map(t => ({ symbol: t.jetton.symbol, address: t.jetton.address })));
+                        console.log(`[PIE FAIL] Eşleşen kontrat/sembol bulunamadı. Aranan Suffix: ${targetSuffix}`);
+                        console.log("[PIE FAIL] Mevcut Jetonlar:", jettonData.balances.map(t => ({ symbol: t.jetton.symbol, address: t.jetton.address })));
                     }
                 }
             }
@@ -656,7 +660,7 @@ function App() {
             console.error("TonAPI Fetch Error:", e); 
         }
 
-        // 3. Backend Verisi (Envanter vs)
+        // 3. Backend Verisi (Değişmedi)
         try {
             const apiData = await apiCall(`/user/${userFriendlyAddress}`);
             setUserInventory(apiData.inventory);
@@ -671,6 +675,7 @@ function App() {
             }
         }
     };
+
 
     useEffect(() => {
         fetchAllData();

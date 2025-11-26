@@ -1,23 +1,24 @@
 :root {
-  --color-bg-deep: #050505;
-  --color-glass-panel: rgba(255, 255, 255, 0.03);
-  --color-glass-border: rgba(255, 255, 255, 0.08);
-  --color-glass-highlight: rgba(255, 255, 255, 0.15);
+  /* --- YENİ TEMEL RENK PALETİ (Lavanta/Leylak) --- */
+  --color-bg-deep: #F9F4FF;       /* Arka Plan: Açık lavanta moru */
+  --color-glass-panel: rgba(164, 130, 230, 0.05); /* Panel Arka Planı: Hafif leylak */
+  --color-glass-border: rgba(164, 130, 230, 0.5); /* Panel Kenarlığı: Yarı saydam leylak */
+  --color-glass-highlight: rgba(164, 130, 230, 0.15);
   
-  --color-text-primary: #ECF0F1;
-  --color-text-secondary: #8FA5B8;
-  --color-text-dim: #546E7A;
+  --color-text-primary: #3A3052;     /* Ana Metin: Koyu çivit mavisi */
+  --color-text-secondary: #60587a;   /* İkincil Metin: Koyu gri/mor */
+  --color-text-dim: #8b809f;         /* Soluk Metin */
 
-  --neon-cyan: #00f3ff;
-  --neon-purple: #bc13fe;
-  --neon-green: #00ff9d;
-  --neon-red: #ff0055;
+  --neon-cyan: #B8E0D4;              /* İkincil Vurgu (STAKE/SOCIAL): Yumuşak nane yeşili */
+  --neon-purple: #A482E6;            /* Ana Vurgu (BUY $PIE): Orta leylak moru */
+  --neon-green: #008060;             /* Başarı/Vurgu: Koyu nane yeşili (Açık temada kontrast için) */
+  --neon-red: #FF4040;               /* Hata/Uyarı: Canlı kırmızı (Açık temada kontrast için) */
   
   --font-head: 'Rajdhani', sans-serif;
   --font-body: 'Outfit', sans-serif;
   
-  --glow-box: 0 0 20px rgba(0, 243, 255, 0.15);
-  --glow-text: 0 0 8px rgba(0, 243, 255, 0.6);
+  --glow-box: 0 0 20px rgba(164, 130, 230, 0.2); /* Leylak Parıltı */
+  --glow-text: 0 0 8px rgba(164, 130, 230, 0.4); /* Leylak Metin Parıltısı */
 }
 
 * {
@@ -44,8 +45,8 @@ img {
 
 body {
   font-family: var(--font-body);
-  background-color: var(--color-bg-deep);
-  color: var(--color-text-primary);
+  background-color: var(--color-bg-deep); /* Yeni Arka Plan Rengi */
+  color: var(--color-text-primary); /* Yeni Metin Rengi */
   min-height: 100vh;
   padding: 16px;
   padding-bottom: 110px;
@@ -68,13 +69,13 @@ body::before, body::after {
 }
 
 body::before {
-  background: var(--neon-purple);
+  background: var(--neon-purple); /* Yeni Ana Vurgu Rengi */
   top: -10%;
   left: -10%;
 }
 
 body::after {
-  background: var(--neon-cyan);
+  background: var(--neon-cyan); /* Yeni İkincil Vurgu Rengi */
   bottom: 10%;
   right: -10%;
   animation-delay: -5s;
@@ -107,14 +108,14 @@ body::after {
 
 /* --- HOLO PANELS --- */
 .holo-panel {
-  background: var(--color-glass-panel);
+  background: var(--color-glass-panel); /* Yeni Saydam Arka Plan */
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid var(--color-glass-border);
+  border: 1px solid var(--color-glass-border); /* Yeni Kenarlık */
   border-radius: 24px;
   padding: 20px;
   margin-bottom: 16px;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1); /* Açık temaya uygun hafif gölge */
   position: relative;
   overflow: hidden;
   transition: transform 0.2s, border-color 0.2s;
@@ -127,7 +128,7 @@ body::after {
   left: 0;
   right: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  background: linear-gradient(90deg, transparent, rgba(164, 130, 230, 0.4), transparent); /* Yeni leylak highlight */
 }
 
 /* --- TYPOGRAPHY --- */
@@ -147,13 +148,13 @@ h2, .balance-usd, .nft-title, .game-title, .modal-title {
   font-size: 36px;
   font-weight: 700;
   margin-bottom: 4px;
-  text-shadow: 0 0 15px rgba(255,255,255,0.1);
+  text-shadow: 0 0 10px rgba(58, 48, 82, 0.1); /* Koyu metin için hafif gölge */
   display: flex;
   align-items: center;
 }
 
 .balance-pie {
-  color: var(--neon-cyan);
+  color: var(--neon-purple); /* Ana Vurgu Rengi */
   font-size: 18px;
   font-family: var(--font-head);
   font-weight: 600;
@@ -169,9 +170,9 @@ h2, .balance-usd, .nft-title, .game-title, .modal-title {
 }
 
 .action-btn {
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--color-text-primary);
-  border: 1px solid var(--color-glass-border);
+  background: transparent; /* Açık temada şeffaf buton */
+  color: var(--neon-cyan); /* Yeni İkincil Vurgu Rengi */
+  border: 1px solid var(--neon-cyan); /* Yeni İkincil Vurgu Rengi */
   border-radius: 16px;
   padding: 14px;
   font-family: var(--font-head);
@@ -186,16 +187,16 @@ h2, .balance-usd, .nft-title, .game-title, .modal-title {
 }
 
 .action-btn:hover, .marketplace-button:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(184, 224, 212, 0.2); /* Nane yeşili hover efekti */
   border-color: var(--neon-cyan);
-  box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);
+  box-shadow: 0 0 15px rgba(184, 224, 212, 0.4);
   transform: translateY(-2px);
 }
 
 .cta-btn {
   width: 100%;
-  background: linear-gradient(135deg, var(--neon-cyan), #0099ff);
-  color: #000;
+  background: var(--neon-purple); /* Yeni Ana Vurgu Rengi */
+  color: var(--color-bg-deep); /* Arka plan rengini (açık lavanta) metin rengi olarak kullan */
   border: none;
   border-radius: 16px;
   padding: 16px;
@@ -206,18 +207,18 @@ h2, .balance-usd, .nft-title, .game-title, .modal-title {
   letter-spacing: 1.5px;
   cursor: pointer;
   transition: all 0.3s;
-  box-shadow: 0 4px 20px rgba(0, 243, 255, 0.4);
+  box-shadow: 0 4px 20px rgba(164, 130, 230, 0.4); /* Yeni leylak gölge */
   position: relative;
 }
 
 .cta-btn:hover:not(:disabled) {
   transform: scale(1.02);
-  box-shadow: 0 6px 25px rgba(0, 243, 255, 0.6);
+  box-shadow: 0 6px 25px rgba(164, 130, 230, 0.6);
   filter: brightness(1.1);
 }
 
 .cta-btn:disabled {
-  background: #333;
+  background: #ccc;
   color: #666;
   box-shadow: none;
   cursor: not-allowed;
@@ -225,8 +226,8 @@ h2, .balance-usd, .nft-title, .game-title, .modal-title {
 
 .cta-btn.secondary {
   background: transparent;
-  border: 1px solid var(--neon-cyan);
-  color: var(--neon-cyan);
+  border: 1px solid var(--neon-purple);
+  color: var(--neon-purple);
   box-shadow: none;
 }
 
@@ -252,7 +253,7 @@ h2, .balance-usd, .nft-title, .game-title, .modal-title {
 .nft-scroll::-webkit-scrollbar { display: none; }
 
 .nft-card, .marketplace-card {
-  background: rgba(0, 0, 0, 0.4);
+  background: var(--color-glass-panel); /* Saydam leylak */
   border-radius: 16px;
   border: 1px solid var(--color-glass-border);
   overflow: hidden;
@@ -266,21 +267,21 @@ h2, .balance-usd, .nft-title, .game-title, .modal-title {
 .nft-card:hover, .marketplace-card:hover {
   transform: translateY(-5px) scale(1.02);
   border-color: var(--neon-purple);
-  box-shadow: 0 10px 30px rgba(188, 19, 254, 0.2);
+  box-shadow: 0 10px 30px rgba(164, 130, 230, 0.2);
 }
 
 .nft-card::before, .marketplace-card::before {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,243,255,0.05) 100%);
+  background: linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(164, 130, 230, 0.1) 100%);
   opacity: 0;
   transition: opacity 0.3s;
 }
 .nft-card:hover::before { opacity: 1; }
 
 .card-image-wrapper {
-  background: rgba(255,255,255,0.02);
+  background: var(--color-glass-panel);
   padding: 10px;
   border-bottom: 1px solid var(--color-glass-border);
   display: flex;
@@ -292,7 +293,7 @@ h2, .balance-usd, .nft-title, .game-title, .modal-title {
   width: 100%;
   height: 140px;
   object-fit: contain;
-  filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5));
+  filter: drop-shadow(0 4px 6px rgba(0,0,0,0.2)); /* Gölgeyi küçült */
   transition: transform 0.3s;
 }
 .nft-card:hover .nft-image, .marketplace-card:hover .card-image {
@@ -308,11 +309,11 @@ h2, .balance-usd, .nft-title, .game-title, .modal-title {
 /* --- INPUTS --- */
 .search-input, input[type="number"], input[type="text"] {
   width: 100%;
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(164, 130, 230, 0.08); /* Hafif leylak arka plan */
   border: 1px solid var(--color-glass-border);
   border-radius: 12px;
   padding: 14px 16px;
-  color: var(--neon-cyan);
+  color: var(--color-text-primary); /* Koyu metin */
   font-family: var(--font-head);
   font-size: 18px;
   outline: none;
@@ -322,16 +323,16 @@ h2, .balance-usd, .nft-title, .game-title, .modal-title {
 }
 
 .search-input:focus, input:focus {
-  border-color: var(--neon-cyan);
-  box-shadow: 0 0 15px rgba(0, 243, 255, 0.1);
-  background: rgba(0, 0, 0, 0.5);
+  border-color: var(--neon-purple); /* Ana Vurgu Rengi */
+  box-shadow: 0 0 15px rgba(164, 130, 230, 0.2);
+  background: rgba(164, 130, 230, 0.1);
 }
 
 /* --- TAGS & BADGES --- */
 .card-price-tag {
-  background: linear-gradient(90deg, rgba(188, 19, 254, 0.2), rgba(188, 19, 254, 0.4));
-  border: 1px solid rgba(188, 19, 254, 0.5);
-  color: #fff;
+  background: var(--neon-purple); /* Ana Vurgu Rengi */
+  border: 1px solid var(--neon-purple);
+  color: var(--color-bg-deep); /* Açık Lavanta Metin */
   border-radius: 8px;
   padding: 6px 10px;
   font-family: var(--font-head);
@@ -342,21 +343,21 @@ h2, .balance-usd, .nft-title, .game-title, .modal-title {
   justify-content: center;
   width: 90%;
   margin-top: 10px;
-  text-shadow: 0 0 5px var(--neon-purple);
+  text-shadow: 0 0 3px rgba(58, 48, 82, 0.5); /* Koyu gölge */
 }
 
 /* --- MODALS --- */
 .modal-overlay {
-  background: rgba(0, 0, 0, 0.85);
+  background: rgba(249, 244, 255, 0.85); /* Açık temaya uygun saydam zemin */
   backdrop-filter: blur(8px);
   z-index: 2000;
 }
 
 .modal-content {
-  background: #0a0a0a;
+  background: var(--color-bg-deep); /* Açık Arka Plan */
   border: 1px solid var(--color-glass-border); 
-  border-top: 1px solid rgba(255,255,255,0.15);
-  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.8);
+  border-top: 1px solid var(--neon-purple);
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.1);
   border-radius: 24px 24px 0 0;
   position: relative;
 }
@@ -368,12 +369,12 @@ h2, .balance-usd, .nft-title, .game-title, .modal-title {
   transform: translateX(-50%);
   width: 40px;
   height: 4px;
-  background: var(--color-glass-border);
+  background: var(--neon-purple); /* Ana Vurgu Rengi */
   border-radius: 2px;
 }
 
 .modal-item {
-  background: rgba(255,255,255,0.03);
+  background: var(--color-glass-panel);
   border: 1px solid var(--color-glass-border);
   color: var(--color-text-primary);
   border-radius: 12px;
@@ -381,18 +382,18 @@ h2, .balance-usd, .nft-title, .game-title, .modal-title {
   transition: 0.2s;
 }
 .modal-item:hover {
-  background: rgba(0, 243, 255, 0.1);
-  border-color: var(--neon-cyan);
+  background: rgba(164, 130, 230, 0.2); /* Leylak hover */
+  border-color: var(--neon-purple);
 }
 
 /* --- BOTTOM NAV --- */
 .bottom-nav {
-  background: rgba(10, 10, 10, 0.85);
+  background: rgba(249, 244, 255, 0.9); /* Açık Arka Plan */
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--color-glass-border);
   border-radius: 32px; 
-  box-shadow: 0 10px 40px rgba(0,0,0,0.6); 
+  box-shadow: 0 10px 40px rgba(0,0,0,0.1); /* Hafif gölge */
   height: 70px;
 }
 
@@ -406,14 +407,14 @@ h2, .balance-usd, .nft-title, .game-title, .modal-title {
 }
 
 .nav-item.active {
-  color: var(--neon-cyan);
+  color: var(--neon-purple); /* Ana Vurgu Rengi */
   opacity: 1;
-  text-shadow: 0 0 10px rgba(0,243,255,0.5);
+  text-shadow: 0 0 5px rgba(164, 130, 230, 0.5);
 }
 
 .nav-item.active .nav-icon path {
-  fill: var(--neon-cyan);
-  filter: drop-shadow(0 0 5px var(--neon-cyan));
+  fill: var(--neon-purple); /* Ana Vurgu Rengi */
+  filter: drop-shadow(0 0 5px var(--neon-purple));
 }
 
 /* --- ICONS --- */
@@ -425,18 +426,18 @@ h2, .balance-usd, .nft-title, .game-title, .modal-title {
 
 /* --- TOAST --- */
 .toast {
-  background: rgba(10, 10, 10, 0.95);
+  background: var(--color-bg-deep);
   border: 1px solid var(--color-glass-border);
   backdrop-filter: blur(12px);
   font-family: var(--font-head);
   letter-spacing: 0.5px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2);
 }
 .toast.success { border-color: var(--neon-green); color: var(--neon-green); }
 .toast.error { border-color: var(--neon-red); color: var(--neon-red); }
 
 /* Utilities */
-.text-neon { color: var(--neon-cyan); }
+.text-neon { color: var(--neon-purple); } /* Ana Vurgu Rengine çevrildi */
 .text-purple { color: var(--neon-purple); }
 .text-green { color: var(--neon-green); }
 .text-dim { color: var(--color-text-dim); }
@@ -450,7 +451,7 @@ h2, .balance-usd, .nft-title, .game-title, .modal-title {
   animation: pulse-glow 3s infinite;
 }
 @keyframes pulse-glow {
-  0% { box-shadow: 0 0 0 0 rgba(0, 243, 255, 0.1); border-color: var(--color-glass-border); }
-  50% { box-shadow: 0 0 20px 0 rgba(0, 243, 255, 0.2); border-color: rgba(0, 243, 255, 0.3); }
-  100% { box-shadow: 0 0 0 0 rgba(0, 243, 255, 0.1); border-color: var(--color-glass-border); }
+  0% { box-shadow: 0 0 0 0 rgba(164, 130, 230, 0.1); border-color: var(--color-glass-border); }
+  50% { box-shadow: 0 0 20px 0 rgba(164, 130, 230, 0.2); border-color: rgba(164, 130, 230, 0.3); }
+  100% { box-shadow: 0 0 0 0 rgba(164, 130, 230, 0.1); border-color: var(--color-glass-border); }
 }

@@ -14,8 +14,8 @@
   --neon-green: #34D186;             /* Başarı/Onay: Parlak Nane Yeşili */
   --neon-red: #FF4040;               /* Hata/Uyarı: Canlı Kırmızı */
   
-  --font-head: 'Rajdhani', sans-serif;
-  --font-body: 'Outfit', sans-serif;
+  --font-head: 'Poetsen One', sans-serif;
+  --font-body: 'Poppins', sans-serif;
   
   --glow-box: 0 0 15px rgba(255, 92, 141, 0.3); /* Pembe Parıltı */
   --glow-text: 0 0 5px rgba(255, 92, 141, 0.4); /* Pembe Metin Parıltısı */

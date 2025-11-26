@@ -9,7 +9,6 @@ const TONAPI_KEY = import.meta.env.VITE_TONAPI_KEY;
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 // --- SABİTLER ---
-// PIE Token Kontratı (Çalışan Raw formatında kalıyor)
 const PIE_TOKEN_CONTRACT = "0:e0207601eb9ea16324c92a1d1b74ed8004d01c2d76b8e7022126b02980913c36"; 
 
 const BLUPPIE_NFT_URL = "https://i.imgur.com/TDukTkX.png"; 
@@ -74,8 +73,8 @@ function InventoryPage({ handleBack, openDetails, inventory, isShowingListings, 
     return (
         <div className="container" style={{ padding: '0' }}>
             <div className="holo-panel" style={{ display: 'flex', alignItems: 'center', padding: '15px', borderRadius: '0 0 24px 24px', borderTop: 'none', marginTop: '-16px' }}>
-                <button onClick={handleBack} style={{ background: 'none', border: 'none', color: 'var(--neon-cyan)', cursor: 'pointer' }}><Icons.Back /></button>
-                <h2 style={{ flexGrow: 1, textAlign: 'center', margin: 0, fontSize: '20px' }}>Inventory</h2>
+                <button onClick={handleBack} style={{ background: 'none', border: 'none', color: 'var(--neon-purple)', cursor: 'pointer' }}><Icons.Back /></button>
+                <h2 style={{ flexGrow: 1, textAlign: 'center', margin: 0, fontSize: '20px', color: 'var(--color-text-primary)' }}>Inventory</h2>
                 <div style={{ width: 24 }}></div>
             </div>
 
@@ -83,14 +82,14 @@ function InventoryPage({ handleBack, openDetails, inventory, isShowingListings, 
                 <button 
                     className="action-btn" 
                     onClick={() => toggleView(false)}
-                    style={{ flex: 1, borderColor: !isShowingListings ? 'var(--neon-cyan)' : '', color: !isShowingListings ? 'var(--neon-cyan)' : '' }}
+                    style={{ flex: 1, borderColor: !isShowingListings ? 'var(--neon-cyan)' : '', color: !isShowingListings ? 'var(--neon-cyan)' : 'var(--color-text-secondary)' }}
                 >
                     Owned ({ownedNfts.length})
                 </button>
                 <button 
                     className="action-btn" 
                     onClick={() => toggleView(true)}
-                    style={{ flex: 1, borderColor: isShowingListings ? 'var(--neon-cyan)' : '', color: isShowingListings ? 'var(--neon-cyan)' : '' }}
+                    style={{ flex: 1, borderColor: isShowingListings ? 'var(--neon-cyan)' : '', color: isShowingListings ? 'var(--neon-cyan)' : 'var(--color-text-secondary)' }}
                 >
                     Listings ({listedNfts.length})
                 </button>
@@ -157,11 +156,11 @@ function ListingPage({ handleBack, inventory, showToast, finalizeListing }) {
                     else if (step === 'currency') setStep('select');
                     else if (step === 'price') setStep('currency');
                 }} 
-                style={{ background: 'none', border: 'none', color: 'var(--neon-cyan)', cursor: 'pointer' }}
+                style={{ background: 'none', border: 'none', color: 'var(--neon-purple)', cursor: 'pointer' }}
             >
                 <Icons.Back />
             </button>
-            <h2 style={{ flexGrow: 1, textAlign: 'center', margin: 0, fontSize: '18px' }}>{title}</h2>
+            <h2 style={{ flexGrow: 1, textAlign: 'center', margin: 0, fontSize: '18px', color: 'var(--color-text-primary)' }}>{title}</h2>
             <div style={{ width: 24 }}></div>
         </div>
     );
@@ -191,7 +190,7 @@ function ListingPage({ handleBack, inventory, showToast, finalizeListing }) {
     const renderStepCurrency = () => (
         <div style={{ padding: '0 16px' }}>
             <div className="holo-panel">
-                <div style={{ fontWeight: '700', marginBottom: '20px', fontFamily: 'var(--font-head)', fontSize: '18px' }}>
+                <div style={{ fontWeight: '700', marginBottom: '20px', fontFamily: 'var(--font-head)', fontSize: '18px', color: 'var(--color-text-primary)' }}>
                     NFT: <span className="text-neon">{selectedNft.name} #{selectedNft.item_number}</span>
                 </div>
                 <div style={{ marginBottom: '15px', color: 'var(--color-text-secondary)' }}>SELECT LISTING CURRENCY:</div>
@@ -218,7 +217,7 @@ function ListingPage({ handleBack, inventory, showToast, finalizeListing }) {
     const renderStepPrice = () => (
         <div style={{ padding: '0 16px' }}>
             <div className="holo-panel">
-                <div style={{ fontWeight: '700', marginBottom: '20px', fontFamily: 'var(--font-head)' }}>
+                <div style={{ fontWeight: '700', marginBottom: '20px', fontFamily: 'var(--font-head)', color: 'var(--color-text-primary)' }}>
                     LISTING: <span className="text-neon">{selectedNft.name} #{selectedNft.item_number}</span> in {listingCurrency}
                 </div>
 
@@ -234,17 +233,17 @@ function ListingPage({ handleBack, inventory, showToast, finalizeListing }) {
                     />
                 </div>
 
-                <div style={{ padding: '15px', background: 'rgba(0,0,0,0.3)', borderRadius: '12px', border: '1px solid var(--color-glass-border)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px' }}>
+                <div style={{ padding: '15px', background: 'var(--color-glass-panel)', borderRadius: '12px', border: '1px solid var(--color-glass-border)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px', color: 'var(--color-text-primary)' }}>
                         <span>Buyer Pays:</span>
                         <span className="text-neon">{buyerPays.toLocaleString('en-US', {maximumFractionDigits: 4})} {listingCurrency}</span>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px', color: 'var(--color-text-primary)' }}>
                         <span>Fee:</span>
                         <span style={{ color: 'var(--neon-red)' }}>- {commissionAmount.toLocaleString('en-US', {maximumFractionDigits: 4})} {listingCurrency}</span>
                     </div>
                     <hr style={{ borderColor: 'var(--color-glass-border)', margin: '10px 0' }} />
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '18px', fontFamily: 'var(--font-head)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '18px', fontFamily: 'var(--font-head)', color: 'var(--color-text-primary)' }}>
                         <span>You Receive</span>
                         <span className="text-green">{sellerReceives.toLocaleString('en-US', {maximumFractionDigits: 4})} {listingCurrency}</span>
                     </div>
@@ -290,7 +289,7 @@ function InventoryDetailModal({ show, onClose, nft, showToast, isListed, deList 
                 <button onClick={onClose} style={{ position: 'absolute', top: 16, right: 16, background: 'none', border: 'none', color: 'var(--color-text-secondary)', cursor:'pointer' }}><Icons.Close /></button>
                 
                 <div style={{ textAlign: 'center', marginBottom: '10px' }}>
-                    <h3 className="modal-title" style={{fontSize: 22, color: 'var(--neon-cyan)'}}>{nft.name} <span style={{color:'#fff'}}>#{nft.item_number}</span></h3>
+                    <h3 className="modal-title" style={{fontSize: 22, color: 'var(--neon-purple)'}}>{nft.name} <span style={{color:'var(--color-text-primary)'}}>#{nft.item_number}</span></h3>
                     <div style={{ color: 'var(--color-text-secondary)', fontSize: '12px', letterSpacing: '1px' }}>// NFT DETAILS</div>
                 </div>
 
@@ -299,8 +298,8 @@ function InventoryDetailModal({ show, onClose, nft, showToast, isListed, deList 
                 </div>
 
                 {isListed && (
-                    <div className="holo-panel" style={{ padding: '15px', marginBottom: '20px', background: 'rgba(255,255,255,0.02)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--neon-cyan)' }}>
+                    <div className="holo-panel" style={{ padding: '15px', marginBottom: '20px', background: 'var(--color-glass-panel)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--neon-purple)' }}>
                             <span>PRICE:</span>
                             <span style={{fontFamily: 'var(--font-head)', fontSize: 18}}>{nft.price} {nft.currency || 'TON'}</span>
                         </div>
@@ -308,7 +307,7 @@ function InventoryDetailModal({ show, onClose, nft, showToast, isListed, deList 
                 )}
                 
                 {isListed && (
-                    <button className="cta-btn" onClick={() => { deList(nft.id); onClose(); }} style={{ background: 'rgba(255,0,85,0.2)', border: '1px solid #ff0055', color: '#ff0055', marginBottom: '15px' }}>
+                    <button className="cta-btn" onClick={() => { deList(nft.id); onClose(); }} style={{ background: 'rgba(255,0,85,0.1)', border: '1px solid #ff0055', color: '#ff0055', marginBottom: '15px' }}>
                         REMOVE FROM MARKETPLACE
                     </button>
                 )}
@@ -338,8 +337,8 @@ function NewPackModal({ show, onClose, showToast, handlePackPurchase, packsSold,
 
     return (
         <div className="modal-overlay" style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={onClose}>
-            <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ width: '90%', maxWidth: '400px', borderRadius: '24px', padding: '24px', border: '1px solid var(--neon-cyan)', boxShadow: '0 0 30px rgba(0,243,255,0.2)' }}>
-                <button onClick={onClose} style={{ position: 'absolute', top: 16, right: 16, background: 'none', border: 'none', color: '#fff', cursor:'pointer' }}><Icons.Close /></button>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ width: '90%', maxWidth: '400px', borderRadius: '24px', padding: '24px', border: '1px solid var(--neon-purple)', boxShadow: '0 0 30px rgba(0,243,255,0.2)' }}>
+                <button onClick={onClose} style={{ position: 'absolute', top: 16, right: 16, background: 'none', border: 'none', color: 'var(--color-text-primary)', cursor:'pointer' }}><Icons.Close /></button>
                 
                 <div style={{ textAlign: 'center' }}>
                     <h2 className="text-neon" style={{fontSize: '24px', marginBottom: '5px'}}>Plush Bluppie Package</h2>
@@ -347,7 +346,7 @@ function NewPackModal({ show, onClose, showToast, handlePackPurchase, packsSold,
                 </div>
 
                 <div style={{ textAlign: 'center', marginBottom: '20px', position: 'relative' }}>
-                    <div style={{ position: 'absolute', inset: '0', background: 'radial-gradient(circle, rgba(0,243,255,0.2) 0%, rgba(0,0,0,0) 70%)', zIndex: 0 }}></div>
+                    <div style={{ position: 'absolute', inset: '0', background: 'radial-gradient(circle, rgba(255, 92, 141, 0.2) 0%, rgba(0,0,0,0) 70%)', zIndex: 0 }}></div>
                     <img src={BLUPPIE_NFT_URL} style={{ width: '160px', height: '160px', position: 'relative', zIndex: 1, filter: 'drop-shadow(0 0 10px rgba(0,243,255,0.5))' }} />
                 </div>
                 
@@ -356,17 +355,17 @@ function NewPackModal({ show, onClose, showToast, handlePackPurchase, packsSold,
                         <span>MINT PROGRESS</span>
                         <span className="text-neon">{progressPercent.toFixed(1)}%</span>
                     </div>
-                    <div style={{ height: '6px', background: '#111', borderRadius: '3px', overflow: 'hidden', border: '1px solid #333' }}>
-                        <div style={{ width: `${progressPercent}%`, height: '100%', background: 'var(--neon-cyan)', boxShadow: '0 0 10px var(--neon-cyan)' }} />
+                    <div style={{ height: '6px', background: '#eee', borderRadius: '3px', overflow: 'hidden', border: '1px solid #ccc' }}>
+                        <div style={{ width: `${progressPercent}%`, height: '100%', background: 'var(--neon-purple)', boxShadow: '0 0 10px var(--neon-purple)' }} />
                     </div>
-                    <div style={{ textAlign: 'center', fontSize: '12px', marginTop: '5px', color: '#fff' }}>
+                    <div style={{ textAlign: 'center', fontSize: '12px', marginTop: '5px', color: 'var(--color-text-primary)' }}>
                         {packsSold} / {TOTAL_PACK_SUPPLY} MINTED
                     </div>
                 </div>
 
                 <div className="holo-panel" style={{ padding: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                    <span style={{fontFamily: 'var(--font-head)', fontSize: '18px'}}>COST:</span>
-                    <div style={{ fontSize: '24px', fontWeight: '700', color: 'var(--neon-cyan)', display: 'flex', alignItems: 'center', fontFamily: 'var(--font-head)' }}>
+                    <span style={{fontFamily: 'var(--font-head)', fontSize: '18px', color: 'var(--color-text-primary)'}}>COST:</span>
+                    <div style={{ fontSize: '24px', fontWeight: '700', color: 'var(--neon-purple)', display: 'flex', alignItems: 'center', fontFamily: 'var(--font-head)' }}>
                             <img src={TON_LOGO_URL} style={{ width: '24px', marginRight: '8px' }} />
                             {PACK_PRICE.toFixed(2)}
                     </div>
@@ -400,7 +399,7 @@ function BuyModal({ show, onClose, nft, currentCurrency, showToast, handlePurcha
     return (
         <div className="modal-overlay" style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} onClick={onClose}>
             <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: '480px', padding: '24px' }}>
-                <button onClick={onClose} style={{ position: 'absolute', top: 16, right: 16, background: 'none', border: 'none', color: '#fff' }}><Icons.Close /></button>
+                <button onClick={onClose} style={{ position: 'absolute', top: 16, right: 16, background: 'none', border: 'none', color: 'var(--color-text-secondary)' }}><Icons.Close /></button>
                 <div style={{ textAlign: 'center', marginBottom: 20 }}>
                     <div className="modal-title text-neon" style={{fontSize: 20}}>BUY NFT</div>
                 </div>
@@ -408,7 +407,7 @@ function BuyModal({ show, onClose, nft, currentCurrency, showToast, handlePurcha
                 <div style={{ display: 'flex', gap: '15px', marginBottom: '20px' }}>
                     <img src={nft.image_url || BLUPPIE_NFT_URL} style={{ width: '80px', height: '80px', borderRadius: '12px', border: '1px solid var(--color-glass-border)' }} />
                     <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                        <div style={{ fontSize: '18px', fontFamily: 'var(--font-head)', fontWeight: '700' }}>{nft.name}</div>
+                        <div style={{ fontSize: '18px', fontFamily: 'var(--font-head)', fontWeight: '700', color: 'var(--color-text-primary)' }}>{nft.name}</div>
                         <div className="text-neon">#{nft.item_number}</div>
                     </div>
                 </div>
@@ -416,7 +415,7 @@ function BuyModal({ show, onClose, nft, currentCurrency, showToast, handlePurcha
                 <div className="holo-panel" style={{ padding: '15px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', fontSize: '16px' }}>
                         <span className="text-dim">TOTAL COST:</span>
-                        <div style={{ fontWeight: '700', display: 'flex', alignItems: 'center', color: '#fff' }}>
+                        <div style={{ fontWeight: '700', display: 'flex', alignItems: 'center', color: 'var(--color-text-primary)' }}>
                             <img src={currencyLogo} style={{ width: '16px', marginRight: '5px' }} />
                             {price.toLocaleString('en-US', {maximumFractionDigits: 4})} {currentCurrency}
                         </div>
@@ -441,14 +440,14 @@ function BalanceTooltipModal({ show, onClose, usd, pie, price }) {
     return (
         <div className="modal-overlay" style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={onClose}>
             <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ width: '90%', maxWidth: '350px', borderRadius: '16px', padding: '20px' }}>
-                <h3 className="modal-title" style={{fontSize: 18, marginBottom: 15, color: 'var(--neon-cyan)'}}>ASSET VALUATION</h3>
-                <div style={{ fontSize: '14px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between' }}>
+                <h3 className="modal-title" style={{fontSize: 18, marginBottom: 15, color: 'var(--neon-purple)'}}>ASSET VALUATION</h3>
+                <div style={{ fontSize: '14px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', color: 'var(--color-text-primary)' }}>
                     <span className="text-dim">Holding:</span> <span className="text-neon">{pie} PIE</span>
                 </div>
-                <div style={{ fontSize: '14px', marginBottom: '15px', display: 'flex', justifyContent: 'space-between' }}>
+                <div style={{ fontSize: '14px', marginBottom: '15px', display: 'flex', justifyContent: 'space-between', color: 'var(--color-text-primary)' }}>
                     <span className="text-dim">Market Price:</span> <span>${price}</span>
                 </div>
-                <div style={{ borderTop: '1px solid var(--color-glass-border)', paddingTop: '10px', display: 'flex', justifyContent: 'space-between', fontSize: '18px', fontFamily: 'var(--font-head)', fontWeight: '700' }}>
+                <div style={{ borderTop: '1px solid var(--color-glass-border)', paddingTop: '10px', display: 'flex', justifyContent: 'space-between', fontSize: '18px', fontFamily: 'var(--font-head)', fontWeight: '700', color: 'var(--color-text-primary)' }}>
                     <span>TOTAL</span> <span>${usd}</span>
                 </div>
             </div>
@@ -472,8 +471,8 @@ function StakingPage({ handleBack, pieBalance, showToast }) {
     return (
         <div className="container" style={{ padding: '0' }}>
             <div className="holo-panel" style={{ display: 'flex', alignItems: 'center', padding: '15px', borderRadius: '0 0 24px 24px', borderTop: 'none', marginTop: '-16px' }}>
-                <button onClick={handleBack} style={{ background: 'none', border: 'none', color: 'var(--neon-cyan)' }}><Icons.Back /></button>
-                <h2 style={{ flexGrow: 1, textAlign: 'center', margin: 0, fontSize: '20px' }}>Staking</h2>
+                <button onClick={handleBack} style={{ background: 'none', border: 'none', color: 'var(--neon-purple)' }}><Icons.Back /></button>
+                <h2 style={{ flexGrow: 1, textAlign: 'center', margin: 0, fontSize: '20px', color: 'var(--color-text-primary)' }}>Staking</h2>
                 <div style={{ width: 24 }}></div>
             </div>
 
@@ -494,7 +493,7 @@ function StakingPage({ handleBack, pieBalance, showToast }) {
             <div className="holo-panel">
                 <div className="nft-title" style={{fontSize: 16}}>MY STAKE</div>
                 <div style={{ marginBottom: '15px', fontSize: '14px' }} className="text-dim">
-                    AVAILABLE: <strong className="text-white">{pieBalance} $PIE</strong>
+                    AVAILABLE: <strong className="text-purple">{pieBalance} $PIE</strong>
                 </div>
                 <input
                     type="number"
@@ -504,7 +503,7 @@ function StakingPage({ handleBack, pieBalance, showToast }) {
                     style={{ marginBottom: '15px' }}
                 />
                 {amount > 0 && !isNaN(amount) && (
-                    <div style={{ padding: '10px', background: 'rgba(0,255,157,0.1)', borderRadius: '8px', border: '1px solid var(--neon-green)', marginBottom: '15px', fontSize: '14px' }}>
+                    <div style={{ padding: '10px', background: 'rgba(0,255,157,0.1)', borderRadius: '8px', border: '1px solid var(--neon-green)', marginBottom: '15px', fontSize: '14px', color: 'var(--color-text-primary)' }}>
                         Est. Daily Yield: <strong className="text-green">+{dailyEarnings.toLocaleString('en-US', {maximumFractionDigits: 2})} $PIE</strong>
                     </div>
                 )}
@@ -518,8 +517,8 @@ function TransactionHistoryPage({ handleBack, history }) {
     return (
         <div className="container" style={{ padding: '0' }}>
             <div className="holo-panel" style={{ display: 'flex', alignItems: 'center', padding: '15px', borderRadius: '0 0 24px 24px', borderTop: 'none', marginTop: '-16px' }}>
-                <button onClick={handleBack} style={{ background: 'none', border: 'none', color: 'var(--neon-cyan)' }}><Icons.Back /></button>
-                <h2 style={{ flexGrow: 1, textAlign: 'center', margin: 0, fontSize: '20px' }}>My Transactions</h2>
+                <button onClick={handleBack} style={{ background: 'none', border: 'none', color: 'var(--neon-purple)' }}><Icons.Back /></button>
+                <h2 style={{ flexGrow: 1, textAlign: 'center', margin: 0, fontSize: '20px', color: 'var(--color-text-primary)' }}>My Transactions</h2>
                 <div style={{ width: 24 }}></div>
             </div>
             
@@ -527,14 +526,14 @@ function TransactionHistoryPage({ handleBack, history }) {
                 {history.map((tx) => (
                     <div key={tx.id} className="holo-panel" style={{ padding: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                         <div>
-                            <div style={{ fontWeight: '700', color: '#fff', fontFamily: 'var(--font-head)' }}>
+                            <div style={{ fontWeight: '700', color: 'var(--color-text-primary)', fontFamily: 'var(--font-head)' }}>
                                 <span style={{ color: tx.type.includes('Buy') ? 'var(--neon-red)' : 'var(--neon-green)' }}>{tx.type.toUpperCase()}</span>
                             </div>
                             <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginTop: '4px' }}>{tx.item_name}</div>
                         </div>
                         <div style={{ textAlign: 'right' }}>
                             {tx.amount !== 'N/A' && <div className="text-neon">{tx.amount} {tx.currency}</div>}
-                            <div style={{ fontSize: '10px', opacity: 0.5 }}>{tx.status}</div>
+                            <div style={{ fontSize: '10px', opacity: 0.5, color: 'var(--color-text-secondary)' }}>{tx.status}</div>
                         </div>
                     </div>
                 ))}
@@ -609,12 +608,10 @@ function App() {
     // --- DATA FETCHING (TONAPI) ---
     
     const fetchAllData = async () => {
-        // HATA ÇÖZÜMÜ 1: Cüzdan bağlı değilse (adres yoksa) bakiyeleri sıfırla ve API çağrısı yapma
+        // Cüzdan bağlı değilse bakiyeleri sıfırla
         if (!userFriendlyAddress) {
             setUserTonBalance(0);
             setUserPieBalance(0);
-            // Envanter/Backend verisini de temizleyebiliriz, ancak demo verisi tutmak istiyorsak bu kısmı pas geçebiliriz.
-            // setUserInventory([]); 
             return;
         }
 
@@ -637,8 +634,6 @@ function App() {
                 const jettonData = await jettonRes.json();
 
                 if (jettonData && jettonData.balances) {
-                    
-                    // PIE_TOKEN_CONTRACT (Raw format) ile tam eşleşme yap
                     const pieToken = jettonData.balances.find(token => {
                         return token.jetton.address === PIE_TOKEN_CONTRACT;
                     });
@@ -654,17 +649,15 @@ function App() {
                 }
             }
         } catch (e) { 
-            // Hata ayıklama konsol çıktıları temizlendi, hata sadece console.error olarak kalıyor.
             console.error("TonAPI Fetch Error:", e); 
         }
 
-        // 3. Backend Verisi (Değişmedi)
+        // 3. Backend Verisi
         try {
             const apiData = await apiCall(`/user/${userFriendlyAddress}`);
             setUserInventory(apiData.inventory);
             setTransactionHistory(apiData.transactions);
         } catch (e) {
-            // Backend yoksa Demo Envanter
             if (userInventory.length === 0) {
                 setUserInventory([
                     { id: 1, name: "Plush Bluppie", item_number: 1, image_url: BLUPPIE_NFT_URL, status: "Owned" },
@@ -797,41 +790,51 @@ function App() {
             return (
                 <React.Fragment>
                     <div className="holo-panel pulse-glow">
-                        <div className="balance-display">
-                            <div className="balance-usd">
-                                ${currentUSDValue} 
-                                <button onClick={() => setShowBalanceTooltip(true)} style={{background:'none', border:'none', color: 'var(--color-text-secondary)', marginLeft: 8, cursor:'pointer'}}><Icons.Info /></button>
-                            </div>
-                            <div className="balance-pie">{formattedPieBalance} $PIE</div>
-                        </div>
-                        <div className="action-buttons">
-                            <button className="action-btn" onClick={() => setShowStakingPage(true)}>STAKE</button>
-                            <button className="action-btn" onClick={() => setShowSocialsModal(true)}>SOCIAL</button>
-                        </div>
-                        <button className="cta-btn" onClick={() => setShowGetPieModal(true)}>BUY $PIE</button>
-                    </div>
-                    
-                    <div className="holo-panel">
-                        <div className="nft-title" style={{justifyContent:'center'}}><span className="text-neon"></span> New Packages & Pre-Sale</div> 
-                        <div className="nft-scroll">
-                            <div className="nft-card" onClick={() => setShowNewPackModal(true)} style={{ minWidth: '280px' }}>
-                                <div style={{ padding: '15px', textAlign: 'center' }}>
-                                    <div style={{ fontSize: '16px', fontWeight: '700', color: 'var(--color-text-primary)', marginBottom: '8px' }}>Plush Bluppie</div>
-                                    <img className="nft-image" src={BLUPPIE_NFT_URL} />
-                                    <div className="text-neon" style={{ marginTop: '10px', fontSize: '20px', fontWeight: '900' }}>{PACK_PRICE.toFixed(2)} TON</div>
+                        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
+                            <img 
+                                src={telegramUser?.photo_url || BLUPPIE_NFT_URL} 
+                                style={{ width: '64px', height: '64px', borderRadius: '50%', border: '2px solid var(--neon-purple)', padding: 2 }} 
+                            />
+                            <div style={{ marginLeft: '15px' }}>
+                                <div style={{ fontSize: '20px', fontWeight: '700', color: 'var(--color-text-primary)' }}>
+                                    {telegramUser ? (telegramUser.first_name + ' ' + (telegramUser.last_name || '')) : 'Guest User'}
+                                </div>
+                                <div style={{ fontSize: '12px', color: !userFriendlyAddress ? 'var(--neon-red)' : 'var(--neon-green)', fontFamily: 'monospace' }}>
+                                    {userFriendlyAddress ? displayAddress : 'Wallet Not Connected'}
                                 </div>
                             </div>
                         </div>
+
+                        <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'center' }}>
+                             <TonConnectButton />
+                        </div>
+
+                        {/* DÜZELTİLEN KISIM: Inline renkler kaldırıldı, CSS değişkeni eklendi */}
+                        <div style={{ marginBottom: '10px' }}>
+                            <button className="menu-item-button" style={{ width: '100%', background: 'transparent', color: 'var(--color-text-primary)', padding: '15px 0', display: 'flex', justifyContent: 'space-between', cursor:'pointer', border:'none', borderBottom:'1px solid var(--color-glass-border)' }} onClick={() => setShowInventoryPage(true)}>
+                                <span style={{display:'flex', alignItems:'center', gap:10}}><Icons.Market /> Inventory</span> <span>&gt;</span>
+                            </button>
+                            <button className="menu-item-button" style={{ width: '100%', background: 'transparent', color: 'var(--color-text-primary)', padding: '15px 0', display: 'flex', justifyContent: 'space-between', cursor:'pointer', border:'none', borderBottom:'1px solid var(--color-glass-border)' }} onClick={() => setShowStakingPage(true)}>
+                                <span style={{display:'flex', alignItems:'center', gap:10}}><Icons.Stake /> Staking</span> <span>&gt;</span>
+                            </button>
+                            <button className="menu-item-button" style={{ width: '100%', background: 'transparent', color: 'var(--color-text-primary)', padding: '15px 0', display: 'flex', justifyContent: 'space-between', cursor:'pointer', border:'none' }} onClick={() => setShowTransactionHistoryPage(true)}>
+                                <span style={{display:'flex', alignItems:'center', gap:10}}><Icons.History /> Transaction History</span> <span>&gt;</span>
+                            </button>
+                        </div>
                     </div>
-                    
-                    <div className="holo-panel" style={{ textAlign: 'center' }}>
-                        <div className="game-title text-neon" style={{marginBottom: 5}}>JOIN THE FLOW</div>
-                        <div className="text-dim" style={{fontSize: 12, marginBottom: 15}}>EARN $BLUP IN THE BLUPPIE UNIVERSE</div>
-                        <button className="cta-btn secondary" onClick={() => window.open(LINK_GAME, '_blank')}>SOON</button>
+
+                    <div className="holo-panel"> 
+                        <div className="nft-title" style={{fontSize: 18}}><Icons.Friends /> Referrals</div>
+                        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '15px', justifyContent: 'space-between', color: 'var(--color-text-primary)' }}>
+                            <span className="text-dim">Total Invites</span>
+                            <span className="text-neon" style={{ fontSize: '18px', fontWeight: '800' }}>0</span>
+                        </div>
+                        <button className="cta-btn" onClick={async () => { await navigator.clipboard.writeText(userFriendlyAddress); showToast('UPLINK COPIED', 'success'); }}>Invite Friends</button>
                     </div>
                 </React.Fragment>
             );
         } else if (activeTab === 'Marketplace') {
+            // ... (Aynı)
             const currentBalanceAmount = currentCurrency === 'TON' ? userTonBalance : userPieBalance;
             const displayedBalance = currentBalanceAmount.toFixed(2) + ' ' + currentCurrency;
             return (
@@ -868,50 +871,23 @@ function App() {
                 </div>
             );
         } else if (activeTab === 'Profile') {
-            return (
-                <React.Fragment>
-                    <div className="holo-panel">
-                        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
-                            <img 
-                                src={telegramUser?.photo_url || BLUPPIE_NFT_URL} 
-                                style={{ width: '64px', height: '64px', borderRadius: '50%', border: '2px solid var(--neon-cyan)', padding: 2 }} 
-                            />
-                            <div style={{ marginLeft: '15px' }}>
-                                <div style={{ fontSize: '20px', fontWeight: '700' }}>
-                                    {telegramUser ? (telegramUser.first_name + ' ' + (telegramUser.last_name || '')) : 'Guest User'}
-                                </div>
-                                <div style={{ fontSize: '12px', color: !userFriendlyAddress ? 'var(--neon-red)' : 'var(--neon-green)', fontFamily: 'monospace' }}>
-                                    {userFriendlyAddress ? displayAddress : 'Wallet Not Connected'}
-                                </div>
-                            </div>
+            // Profile kısmı şimdi Menu içinde kullanılıyor, burayı istersen temizleyebilirsin ama kalsa da sorun yok.
+            // Menu tab'ında yapılan düzeltme burada da geçerli.
+             return (
+                <div className="holo-panel pulse-glow">
+                    <div className="balance-display">
+                        <div className="balance-usd">
+                            ${currentUSDValue} 
+                            <button onClick={() => setShowBalanceTooltip(true)} style={{background:'none', border:'none', color: 'var(--color-text-secondary)', marginLeft: 8, cursor:'pointer'}}><Icons.Info /></button>
                         </div>
-
-                        <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'center' }}>
-                             <TonConnectButton />
-                        </div>
-
-                        <div style={{ marginBottom: '10px' }}>
-                            <button className="menu-item-button" style={{ width: '100%', background: 'transparent', color: '#fff', padding: '15px 0', display: 'flex', justifyContent: 'space-between', cursor:'pointer', border:'none', borderBottom:'1px solid var(--color-glass-border)' }} onClick={() => setShowInventoryPage(true)}>
-                                <span style={{display:'flex', alignItems:'center', gap:10}}><Icons.Market /> Inventory</span> <span>&gt;</span>
-                            </button>
-                            <button className="menu-item-button" style={{ width: '100%', background: 'transparent', color: '#fff', padding: '15px 0', display: 'flex', justifyContent: 'space-between', cursor:'pointer', border:'none', borderBottom:'1px solid var(--color-glass-border)' }} onClick={() => setShowStakingPage(true)}>
-                                <span style={{display:'flex', alignItems:'center', gap:10}}><Icons.Stake /> Staking</span> <span>&gt;</span>
-                            </button>
-                            <button className="menu-item-button" style={{ width: '100%', background: 'transparent', color: '#fff', padding: '15px 0', display: 'flex', justifyContent: 'space-between', cursor:'pointer', border:'none' }} onClick={() => setShowTransactionHistoryPage(true)}>
-                                <span style={{display:'flex', alignItems:'center', gap:10}}><Icons.History /> Transaction History</span> <span>&gt;</span>
-                            </button>
-                        </div>
+                        <div className="balance-pie">{formattedPieBalance} $PIE</div>
                     </div>
-
-                    <div className="holo-panel"> 
-                        <div className="nft-title" style={{fontSize: 18}}><Icons.Friends /> Referrals</div>
-                        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '15px', justifyContent: 'space-between' }}>
-                            <span className="text-dim">Total Invites</span>
-                            <span className="text-neon" style={{ fontSize: '18px', fontWeight: '800' }}>0</span>
-                        </div>
-                        <button className="cta-btn" onClick={async () => { await navigator.clipboard.writeText(userFriendlyAddress); showToast('UPLINK COPIED', 'success'); }}>Invite Friends</button>
+                    <div className="action-buttons">
+                        <button className="action-btn" onClick={() => setShowStakingPage(true)}>STAKE</button>
+                        <button className="action-btn" onClick={() => setShowSocialsModal(true)}>SOCIAL</button>
                     </div>
-                </React.Fragment>
+                    <button className="cta-btn" onClick={() => setShowGetPieModal(true)}>BUY $PIE</button>
+                </div>
             );
         }
     };

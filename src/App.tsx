@@ -3,8 +3,6 @@ import { Icons } from './Icons';
 import './index.css';
 import WebApp from '@twa-dev/sdk';
 import { TonConnectButton, useTonAddress, useTonConnectUI } from '@tonconnect/ui-react';
-// YENİ KÜTÜPHANE İÇE AKTARIMI: Adres formatlarını işlemek için
-import { Address } from '@ton/core'; 
 
 // --- GÜVENLİ DEĞİŞKENLER (.env) ---
 // Vercel'de 'Settings -> Environment Variables' kısmına VITE_TONAPI_KEY eklemeyi unutma!
@@ -12,8 +10,8 @@ const TONAPI_KEY = import.meta.env.VITE_TONAPI_KEY;
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 // --- SABİTLER ---
-// Senin PIE Token Kontratın
-const PIE_TOKEN_CONTRACT = "EQDgIHYB656hYyTJKh0bdO2ABNAcLXa45wIhJrApgJE8Nhxk"; 
+// Senin PIE Token Kontratın (User-friendly EQ formatında kalması uygundur, eşleşmeyi biz yapacağız)
+const PIE_TOKEN_CONTRACT = "0:e0207601eb9ea16324c92a1d1b74ed8004d01c2d76b8e7022126b02980913c36"; 
 
 const BLUPPIE_NFT_URL = "https://i.imgur.com/TDukTkX.png"; 
 const BLUM_LOGO_URL = "https://s2.coinmarketcap.com/static/img/coins/200x200/33154.png"; 
@@ -626,7 +624,7 @@ function App() {
                 }
             }
 
-            // 2. PIE BAKİYESİ (TonAPI)
+            // 2. PIE BAKİYESİ (Raw/User-friendly Adres Eşleştirmeyi Deniyoruz)
             const jettonRes = await fetch(`https://tonapi.io/v2/accounts/${userFriendlyAddress}/jettons`, { headers });
             
             if (jettonRes.ok) {
@@ -634,35 +632,17 @@ function App() {
 
                 if (jettonData && jettonData.balances) {
                     
-                    // Kütüphane ile EQ adresini Raw (0:) adrese dönüştürmeyi dene
-                    let targetRawAddress = null;
-                    try {
-                        const targetAddress = Address.parse(PIE_TOKEN_CONTRACT);
-                        targetRawAddress = targetAddress.toString({ bounceable: false, testOnly: false, urlSafe: true });
-                        console.log(`[PIE DEBUG] PIE EQ Address parsed to Raw: ${targetRawAddress}`);
-                    } catch (e) {
-                        console.error("[PIE ERROR] Could not parse PIE_TOKEN_CONTRACT using @ton/core.", e);
-                        // Eğer dönüştürme başarısız olursa, eski suffix karşılaştırmasını kullanırız
-                    }
+                    // Jetonun son 20 karakterini küçük harfe çevirerek kullanıyoruz.
+                    // Bu, TonAPI'den gelen Raw (0:) veya EQ formatındaki adresi bizim EQ sabitimizle eşleştirmeye çalışır.
+                    const targetSuffix = PIE_TOKEN_CONTRACT.slice(-20).toLowerCase(); 
                     
-                    let pieToken = null;
-
-                    if (targetRawAddress) {
-                        // Raw adresi kullanarak tam eşleşmeyi dene
-                        pieToken = jettonData.balances.find(token => 
-                            token.jetton.address === targetRawAddress || token.jetton.address === PIE_TOKEN_CONTRACT
-                        );
-                    }
-                    
-                    // Eğer tam eşleşme bulamazsa, sembol ve suffix eşleşmesini kullanarak tekrar dene
-                    if (!pieToken) {
-                        const targetSuffix = PIE_TOKEN_CONTRACT.slice(-20).toLowerCase(); 
-                        pieToken = jettonData.balances.find(token => {
-                            const tokenAddressSuffix = token.jetton.address.slice(-20).toLowerCase();
-                            return tokenAddressSuffix === targetSuffix && token.jetton.symbol === 'PIE';
-                        });
-                    }
-
+                    const pieToken = jettonData.balances.find(token => {
+                        // Gelen adresin son 20 karakterini de küçük harfe çevirip karşılaştır.
+                        const tokenAddressSuffix = token.jetton.address.slice(-20).toLowerCase();
+                        
+                        // Hem suffix hem de sembolü 'PIE' olan kaydı kontrol et.
+                        return tokenAddressSuffix === targetSuffix && token.jetton.symbol === 'PIE';
+                    });
 
                     if (pieToken) {
                         const decimals = pieToken.jetton.decimals || 9; // PIE'nin decimal değerini kontrol et!
@@ -672,7 +652,7 @@ function App() {
                         console.log(`[PIE SUCCESS] Bakiye Alındı! Kontrat: ${pieToken.jetton.address}. Bakiye: ${calculatedBalance}`);
                     } else {
                         setUserPieBalance(0);
-                        console.log(`[PIE FAIL] Eşleşen kontrat/sembol bulunamadı.`);
+                        console.log(`[PIE FAIL] Eşleşen kontrat/sembol bulunamadı. Aranan Suffix: ${targetSuffix}`);
                         console.log("[PIE FAIL] Mevcut Jetonlar:", jettonData.balances.map(t => ({ symbol: t.jetton.symbol, address: t.jetton.address })));
                     }
                 }

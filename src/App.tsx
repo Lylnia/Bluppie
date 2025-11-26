@@ -633,7 +633,6 @@ function App() {
 
                 if (jettonData && jettonData.balances) {
                     // SORUN ÇÖZÜMÜ: Kontrat adresinin EQ/UQ karışıklığını çözmek için
-                    // PIE_TOKEN_CONTRACT'ın son 20 karakteri ile gelen adresin son 20 karakterini karşılaştır.
                     const targetSuffix = PIE_TOKEN_CONTRACT.slice(-20); 
                     
                     const pieToken = jettonData.balances.find(token => 
@@ -641,12 +640,15 @@ function App() {
                     );
 
                     if (pieToken) {
-                        const decimals = pieToken.jetton.decimals || 9;
-                        // Bakiyeyi string olsa bile parseFloat ile al ve doğru ondalık hassasiyetine böl
+                        const decimals = pieToken.jetton.decimals || 9; // PIE'nin decimal değerini kontrol et!
                         const rawBalance = parseFloat(pieToken.balance);
-                        setUserPieBalance(rawBalance / Math.pow(10, decimals));
+                        const calculatedBalance = rawBalance / Math.pow(10, decimals);
+                        setUserPieBalance(calculatedBalance);
+                        console.log(`[PIE DEBUG] PIE Token Found! Contract: ${pieToken.jetton.address}. Raw Balance: ${rawBalance}, Decimals: ${decimals}, Calculated: ${calculatedBalance}`);
                     } else {
                         setUserPieBalance(0);
+                        console.log(`[PIE DEBUG] PIE Token NOT Found. Searching for suffix: ${targetSuffix}`);
+                        console.log("[PIE DEBUG] Available Tokens:", jettonData.balances.map(t => ({ symbol: t.jetton.symbol, address: t.jetton.address })));
                     }
                 }
             }

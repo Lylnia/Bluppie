@@ -9,7 +9,11 @@ const TONAPI_KEY = import.meta.env.VITE_TONAPI_KEY;
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 // --- SABİTLER ---
+// 1. PIE Token Kontratı (Raw Format)
 const PIE_TOKEN_CONTRACT = "0:e0207601eb9ea16324c92a1d1b74ed8004d01c2d76b8e7022126b02980913c36"; 
+
+// 2. ADMIN CÜZDANI (Ödemelerin gideceği cüzdan)..."
+const ADMIN_WALLET_ADDRESS = "0:b4184e8d8c8ba2d02008fdab3b10a44fd9bb1eb45c952eacf8a7057b04fdc716"; 
 
 const BLUPPIE_NFT_URL = "https://i.imgur.com/TDukTkX.png"; 
 const BLUM_LOGO_URL = "https://s2.coinmarketcap.com/static/img/coins/200x200/33154.png"; 
@@ -34,6 +38,8 @@ const SOCIAL_TELEGRAM = "https://t.me/BluppieNFT";
 const SOCIAL_DISCORD = "https://discord.gg/";
 
 // --- YARDIMCI FONKSİYONLAR ---
+
+// 1. Backend API Çağrısı (Mock veya Gerçek)
 async function apiCall(endpoint, method = 'GET', body = null) {
     const options = {
         method,
@@ -49,6 +55,71 @@ async function apiCall(endpoint, method = 'GET', body = null) {
         throw error;
     }
 }
+
+// 2. İşlem Doğrulama (GÜVENLİ VERSİYON - Hedef Kontrollü)
+const waitForTransaction = async (address, expectedAmount) => {
+    const maxRetries = 20; // 20 deneme (yaklaşık 1 dakika)
+    let retries = 0;
+
+    // Admin cüzdanını küçük harfe çevirip hazırlıyoruz
+    const targetWallet = ADMIN_WALLET_ADDRESS.toLowerCase(); 
+
+    return new Promise((resolve) => {
+        const interval = setInterval(async () => {
+            retries++;
+            // console.log(`[TX CHECK] Deneme ${retries}/${maxRetries}...`);
+
+            try {
+                // Son 10 işlemi çek
+                const res = await fetch(`https://tonapi.io/v2/blockchain/accounts/${address}/transactions?limit=10`, {
+                    headers: TONAPI_KEY ? { 'Authorization': `Bearer ${TONAPI_KEY}` } : {}
+                });
+                const data = await res.json();
+
+                if (data && data.transactions) {
+                    const foundTx = data.transactions.find(tx => {
+                        // Sadece giden mesajlara bakıyoruz (out_msgs)
+                        if (tx.out_msgs.length === 0) return false;
+
+                        const msg = tx.out_msgs[0];
+                        
+                        // A. TUTAR KONTROLÜ (NanoTON olarak)
+                        const amountMatch = Math.abs(msg.value - (expectedAmount * 1000000000)) < 20000000; // Ufak gas farklarını tolere et (0.02 TON)
+
+                        // B. ZAMAN KONTROLÜ (Son 2 dakika)
+                        const txTime = tx.utime;
+                        const now = Math.floor(Date.now() / 1000);
+                        const isRecent = (now - txTime) < 120;
+
+                        // C. HEDEF ADRES KONTROLÜ (KRİTİK) 🔥
+                        let txDestination = "";
+                        if (msg.destination) {
+                            txDestination = typeof msg.destination === 'object' ? msg.destination.address : msg.destination;
+                        }
+                        
+                        // Adreslerin son 30 karakterini karşılaştır (Raw/User-friendly farkını aşmak için basit çözüm)
+                        const destMatch = txDestination && 
+                                          targetWallet.endsWith(txDestination.slice(-30).toLowerCase());
+
+                        return isRecent && amountMatch && destMatch;
+                    });
+
+                    if (foundTx) {
+                        clearInterval(interval);
+                        resolve(true); // İşlem bulundu ve doğrulandı!
+                    }
+                }
+            } catch (e) {
+                console.error("API Check Error", e);
+            }
+
+            if (retries >= maxRetries) {
+                clearInterval(interval);
+                resolve(false); // Zaman aşımı
+            }
+        }, 3000); // 3 saniyede bir kontrol et
+    });
+};
 
 // --- BİLEŞENLER ---
 
@@ -695,6 +766,56 @@ function App() {
     }, [currentSort, marketplaceSearch]);
 
     // --- ACTIONS ---
+    const handlePackPurchase = async () => {
+        if (!userFriendlyAddress) { showToast("Connect Wallet First!", "error"); return; }
+        
+        // 1. İşlem Hazırlığı
+        const amountTON = PACK_PRICE; 
+        const amountNano = (amountTON * 1000000000).toString(); // TON -> NanoTON
+
+        // 2. TonConnect ile Ödeme İsteği Oluştur
+        const transaction = {
+            validUntil: Math.floor(Date.now() / 1000) + 300, // 5 dakika geçerli
+            messages: [
+                {
+                    address: ADMIN_WALLET_ADDRESS, // GÜVENLİ DEĞİŞKEN
+                    amount: amountNano,
+                }
+            ]
+        };
+
+        try {
+            // 3. Cüzdanı Aç ve Onay İste
+            showToast("Cüzdandan onaylayın...", "success");
+            await tonConnectUI.sendTransaction(transaction);
+
+            // 4. İşlem Gönderildi, Şimdi Blockchain'e Düştü mü Kontrol Et
+            showToast("Ödeme Doğrulanıyor... Bekleyin...", "success");
+            
+            // Burada doğrulama için bekliyoruz (Güvenli, Hedef Kontrollü)
+            const isConfirmed = await waitForTransaction(userFriendlyAddress, amountTON);
+
+            if (isConfirmed) {
+                // 5. ÖDEME ONAYLANDI! -> NFT VER
+                showToast(`BAŞARILI! Paket açıldı!`, 'success');
+                setPacksSold(prev => prev + 1);
+                
+                // (Eğer backend varsa burada backend'e istek atılır)
+                // Demo için envantere ekliyoruz:
+                const newNft = { id: Date.now(), name: "Plush Bluppie", item_number: packsSold + 1, image_url: BLUPPIE_NFT_URL, status: "Owned" };
+                setUserInventory(prev => [...prev, newNft]);
+                
+                setShowNewPackModal(false);
+            } else {
+                showToast("Ödeme doğrulanamadı veya zaman aşımı.", "error");
+            }
+
+        } catch (e) {
+            console.error(e);
+            showToast('İşlem iptal edildi.', 'error');
+        }
+    };
+
     const currentUSDValue = (userPieBalance * PIE_USD_PRICE).toFixed(2);
     const formattedPieBalance = userPieBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const displayAddress = userFriendlyAddress 
@@ -762,23 +883,6 @@ function App() {
             showToast('Transaction Failed or Insufficient Funds', 'error');
         }
     };
-    
-    const handlePackPurchase = async () => {
-        if (!userFriendlyAddress) { showToast("Connect Wallet First!", "error"); return; }
-        try {
-            const res = await apiCall('/packs/buy', 'POST', {
-                wallet_address: userFriendlyAddress
-            });
-            if(res.status === 'success') {
-                showToast(`Pack Unlocked! NFT #${res.nft.item_number} added.`, 'success');
-                setPacksSold(prev => prev + 1);
-                fetchAllData();
-                setShowNewPackModal(false);
-            }
-        } catch(e) {
-            showToast('Purchase Failed or Insufficient Funds', 'error');
-        }
-    };
 
     const renderContent = () => {
         if (showInventoryPage) return <InventoryPage handleBack={handleCloseFullPageViews} openDetails={(nft)=>{setSelectedInventoryNft(nft); setShowInventoryDetail(true);}} inventory={userInventory} isShowingListings={isInventoryShowingListings} toggleView={setIsInventoryShowingListings} />;
@@ -787,7 +891,6 @@ function App() {
         if (showTransactionHistoryPage) return <TransactionHistoryPage handleBack={handleCloseFullPageViews} history={transactionHistory} />;
         
         if (activeTab === 'Menu') {
-            // MENU SEKME İÇERİĞİ (Home)
             return (
                 <React.Fragment>
                     <div className="holo-panel pulse-glow">
@@ -826,7 +929,6 @@ function App() {
                 </React.Fragment>
             );
         } else if (activeTab === 'Marketplace') {
-            // MARKETPLACE İÇERİĞİ
             const currentBalanceAmount = currentCurrency === 'TON' ? userTonBalance : userPieBalance;
             const displayedBalance = currentBalanceAmount.toFixed(2) + ' ' + currentCurrency;
             return (
@@ -863,7 +965,6 @@ function App() {
                 </div>
             );
         } else if (activeTab === 'Profile') {
-            // PROFILE İÇERİĞİ (Kullanıcı Profili ve Menü Butonları)
             return (
                 <React.Fragment>
                     <div className="holo-panel pulse-glow">
@@ -886,7 +987,6 @@ function App() {
                              <TonConnectButton />
                         </div>
 
-                        {/* BURASI GÜNCELLENDİ: Metin rengi ve Ok İkonu */}
                         <div style={{ marginBottom: '10px' }}>
                             <button className="menu-item-button" style={{ width: '100%', background: 'transparent', color: 'var(--color-text-primary)', padding: '15px 0', display: 'flex', justifyContent: 'space-between', cursor:'pointer', border:'none', borderBottom:'1px solid var(--color-glass-border)' }} onClick={() => setShowInventoryPage(true)}>
                                 <span style={{display:'flex', alignItems:'center', gap:10}}><Icons.Market /> Inventory</span> 

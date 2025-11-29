@@ -26,7 +26,7 @@ const TON_LOGO_URL = "https://ton.org/icons/custom/ton_logo.svg";
 const COMMISSION_PIE = 0.001; 
 const COMMISSION_TON = 0.03;  
 const TOTAL_PACK_SUPPLY = 1000;
-const PACK_PRICE = 3.00; 
+const PACK_PRICE = 0.01; 
 
 const PIE_USD_PRICE = 0.0000013; 
 const TON_USD_PRICE = 1.50;      

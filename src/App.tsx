@@ -13,7 +13,7 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const PIE_TOKEN_CONTRACT = "0:e0207601eb9ea16324c92a1d1b74ed8004d01c2d76b8e7022126b02980913c36"; 
 
 // 2. ADMIN CÜZDANI (Senin verdiğin raw adres)
-const ADMIN_WALLET_ADDRESS = "0:b4184e8d8c8ba2d02008fdab3b10a44fd9bb1eb45c952eacf8a7057b04fdc716"; 
+const ADMIN_WALLET_ADDRESS = "UQC0GE6NjIui0CAI_as7EKRP2bsetFyVLqz4pwV7BP3HFsE_"; 
 
 const BLUPPIE_NFT_URL = "https://i.imgur.com/TDukTkX.png"; 
 const BLUM_LOGO_URL = "https://s2.coinmarketcap.com/static/img/coins/200x200/33154.png"; 

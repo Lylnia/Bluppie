@@ -12,7 +12,7 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 // 1. PIE Token Kontratı (Raw Format)
 const PIE_TOKEN_CONTRACT = "0:e0207601eb9ea16324c92a1d1b74ed8004d01c2d76b8e7022126b02980913c36"; 
 
-// 2. ADMIN CÜZDANI (Ödemelerin gideceği cüzdan)..."
+// 2. ADMIN CÜZDANI (Senin verdiğin raw adres)
 const ADMIN_WALLET_ADDRESS = "0:b4184e8d8c8ba2d02008fdab3b10a44fd9bb1eb45c952eacf8a7057b04fdc716"; 
 
 const BLUPPIE_NFT_URL = "https://i.imgur.com/TDukTkX.png"; 
@@ -26,6 +26,8 @@ const TON_LOGO_URL = "https://ton.org/icons/custom/ton_logo.svg";
 const COMMISSION_PIE = 0.001; 
 const COMMISSION_TON = 0.03;  
 const TOTAL_PACK_SUPPLY = 1000;
+
+// Test için fiyatı 0.01 yaptık
 const PACK_PRICE = 0.01; 
 
 const PIE_USD_PRICE = 0.0000013; 
@@ -39,7 +41,7 @@ const SOCIAL_DISCORD = "https://discord.gg/";
 
 // --- YARDIMCI FONKSİYONLAR ---
 
-// 1. Backend API Çağrısı (Mock veya Gerçek)
+// 1. Backend API Çağrısı
 async function apiCall(endpoint, method = 'GET', body = null) {
     const options = {
         method,
@@ -84,7 +86,7 @@ const waitForTransaction = async (address, expectedAmount) => {
                         const msg = tx.out_msgs[0];
                         
                         // A. TUTAR KONTROLÜ (NanoTON olarak)
-                        const amountMatch = Math.abs(msg.value - (expectedAmount * 1000000000)) < 20000000; // Ufak gas farklarını tolere et (0.02 TON)
+                        const amountMatch = Math.abs(msg.value - (expectedAmount * 1000000000)) < 20000000; // Ufak gas farklarını tolere et
 
                         // B. ZAMAN KONTROLÜ (Son 2 dakika)
                         const txTime = tx.utime;
@@ -771,14 +773,17 @@ function App() {
         
         // 1. İşlem Hazırlığı
         const amountTON = PACK_PRICE; 
-        const amountNano = (amountTON * 1000000000).toString(); // TON -> NanoTON
+        
+        // KRİTİK DÜZELTME: 0.01 gibi küçük sayıları tam sayı NanoTON'a çevirirken hata olmaması için Math.floor
+        const amountNano = Math.floor(amountTON * 1000000000).toString(); 
 
         // 2. TonConnect ile Ödeme İsteği Oluştur
         const transaction = {
-            validUntil: Math.floor(Date.now() / 1000) + 300, // 5 dakika geçerli
+            // Zaman aşımını 10 dakikaya (600 saniye) çıkaralım
+            validUntil: Math.floor(Date.now() / 1000) + 600, 
             messages: [
                 {
-                    address: ADMIN_WALLET_ADDRESS, // GÜVENLİ DEĞİŞKEN
+                    address: ADMIN_WALLET_ADDRESS, 
                     amount: amountNano,
                 }
             ]
@@ -882,6 +887,12 @@ function App() {
         } catch (e) {
             showToast('Transaction Failed or Insufficient Funds', 'error');
         }
+    };
+    
+    const handlePackPurchaseAction = async () => {
+       // Bu fonksiyon sadece buton tetikleyicisi olarak kullanılabilir
+       // Asıl işi handlePackPurchase yapıyor
+       handlePackPurchase();
     };
 
     const renderContent = () => {

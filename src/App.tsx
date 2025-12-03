@@ -9,10 +9,7 @@ const TONAPI_KEY = import.meta.env.VITE_TONAPI_KEY;
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 // --- SABİTLER ---
-// 1. PIE Token Kontratı (Raw Format)
 const PIE_TOKEN_CONTRACT = "0:e0207601eb9ea16324c92a1d1b74ed8004d01c2d76b8e7022126b02980913c36"; 
-
-// 2. ADMIN CÜZDANI (Senin verdiğin raw adres)
 const ADMIN_WALLET_ADDRESS = "UQC0GE6NjIui0CAI_as7EKRP2bsetFyVLqz4pwV7BP3HFsE_"; 
 
 const BLUPPIE_NFT_URL = "https://i.imgur.com/TDukTkX.png"; 
@@ -26,10 +23,7 @@ const TON_LOGO_URL = "https://ton.org/icons/custom/ton_logo.svg";
 const COMMISSION_PIE = 0.001; 
 const COMMISSION_TON = 0.03;  
 const TOTAL_PACK_SUPPLY = 1000;
-
-// Test için fiyatı 0.01 yaptık
 const PACK_PRICE = 0.01; 
-
 const PIE_USD_PRICE = 0.0000013; 
 const TON_USD_PRICE = 1.50;      
 
@@ -41,7 +35,6 @@ const SOCIAL_DISCORD = "https://discord.gg/";
 
 // --- YARDIMCI FONKSİYONLAR ---
 
-// 1. Backend API Çağrısı
 async function apiCall(endpoint, method = 'GET', body = null) {
     const options = {
         method,
@@ -58,21 +51,15 @@ async function apiCall(endpoint, method = 'GET', body = null) {
     }
 }
 
-// 2. İşlem Doğrulama (GÜVENLİ VERSİYON - Hedef Kontrollü)
 const waitForTransaction = async (address, expectedAmount) => {
-    const maxRetries = 20; // 20 deneme (yaklaşık 1 dakika)
+    const maxRetries = 20; 
     let retries = 0;
-
-    // Admin cüzdanını küçük harfe çevirip hazırlıyoruz
     const targetWallet = ADMIN_WALLET_ADDRESS.toLowerCase(); 
 
     return new Promise((resolve) => {
         const interval = setInterval(async () => {
             retries++;
-            // console.log(`[TX CHECK] Deneme ${retries}/${maxRetries}...`);
-
             try {
-                // Son 10 işlemi çek
                 const res = await fetch(`https://tonapi.io/v2/blockchain/accounts/${address}/transactions?limit=10`, {
                     headers: TONAPI_KEY ? { 'Authorization': `Bearer ${TONAPI_KEY}` } : {}
                 });
@@ -80,47 +67,40 @@ const waitForTransaction = async (address, expectedAmount) => {
 
                 if (data && data.transactions) {
                     const foundTx = data.transactions.find(tx => {
-                        // Sadece giden mesajlara bakıyoruz (out_msgs)
                         if (tx.out_msgs.length === 0) return false;
-
                         const msg = tx.out_msgs[0];
-                        
-                        // A. TUTAR KONTROLÜ (NanoTON olarak)
-                        const amountMatch = Math.abs(msg.value - (expectedAmount * 1000000000)) < 20000000; // Ufak gas farklarını tolere et
-
-                        // B. ZAMAN KONTROLÜ (Son 2 dakika)
+                        const amountMatch = Math.abs(msg.value - (expectedAmount * 1000000000)) < 20000000; 
                         const txTime = tx.utime;
                         const now = Math.floor(Date.now() / 1000);
                         const isRecent = (now - txTime) < 120;
-
-                        // C. HEDEF ADRES KONTROLÜ (KRİTİK) 🔥
                         let txDestination = "";
                         if (msg.destination) {
                             txDestination = typeof msg.destination === 'object' ? msg.destination.address : msg.destination;
                         }
-                        
-                        // Adreslerin son 30 karakterini karşılaştır (Raw/User-friendly farkını aşmak için basit çözüm)
-                        const destMatch = txDestination && 
-                                          targetWallet.endsWith(txDestination.slice(-30).toLowerCase());
-
+                        const destMatch = txDestination && targetWallet.endsWith(txDestination.slice(-30).toLowerCase());
                         return isRecent && amountMatch && destMatch;
                     });
-
                     if (foundTx) {
                         clearInterval(interval);
-                        resolve(true); // İşlem bulundu ve doğrulandı!
+                        resolve(true); 
                     }
                 }
-            } catch (e) {
-                console.error("API Check Error", e);
-            }
-
+            } catch (e) { console.error("API Check Error", e); }
             if (retries >= maxRetries) {
                 clearInterval(interval);
-                resolve(false); // Zaman aşımı
+                resolve(false); 
             }
-        }, 3000); // 3 saniyede bir kontrol et
+        }, 3000); 
     });
+};
+
+// --- YENİ MANTIK: HOLDER BADGE ---
+const getHolderBadge = (balance) => {
+    // Bakiyeye göre seviye belirleme
+    if (balance >= 100000) return { title: "WHALE KING", color: "#FFD700", icon: "👑", glow: "0 0 15px rgba(255, 215, 0, 0.6)" }; 
+    if (balance >= 50000) return { title: "DIAMOND HAND", color: "#00CED1", icon: "💎", glow: "0 0 10px rgba(0, 206, 209, 0.5)" }; 
+    if (balance >= 10000) return { title: "SHARK", color: "#FF5C8D", icon: "🦈", glow: "none" }; 
+    return { title: "PLANKTON", color: "#A4B0BE", icon: "🦐", glow: "none" }; 
 };
 
 // --- BİLEŞENLER ---
@@ -134,6 +114,105 @@ function Toast({ show, message, type }) {
         }}>
             {type === 'success' ? <Icons.Check /> : <span style={{fontSize:20}}>!</span>}
             {message}
+        </div>
+    );
+}
+
+// --- YENİ SAYFA: LEADERBOARD ---
+function LeaderboardPage({ handleBack, userScore }) {
+    const [leaders] = useState([
+        { id: 1, name: "CryptoKing", score: 250000, badge: "👑" },
+        { id: 2, name: "TonMaster", score: 180000, badge: "💎" },
+        { id: 3, name: "BluppieFan", score: 120000, badge: "💎" },
+        { id: 4, name: "HODLer_99", score: 95000, badge: "🦈" },
+        { id: 5, name: "WhaleWatcher", score: 50000, badge: "🦈" },
+    ]);
+
+    return (
+        <div className="container" style={{ padding: '0' }}>
+            <div className="holo-panel" style={{ display: 'flex', alignItems: 'center', padding: '15px', borderRadius: '0 0 24px 24px', borderTop: 'none', marginTop: '-16px' }}>
+                <button onClick={handleBack} style={{ background: 'none', border: 'none', color: 'var(--neon-purple)', cursor:'pointer' }}><Icons.Back /></button>
+                <h2 style={{ flexGrow: 1, textAlign: 'center', margin: 0, fontSize: '20px', color: 'var(--color-text-primary)' }}>Top Holders</h2>
+                <div style={{ width: 24 }}></div>
+            </div>
+
+            <div style={{ padding: '0 16px', marginTop: 20 }}>
+                {leaders.map((user, index) => (
+                    <div key={user.id} className="holo-panel" style={{ 
+                        padding: '15px', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        marginBottom: '10px',
+                        border: index === 0 ? '1px solid #FFD700' : '1px solid var(--color-glass-border)',
+                        boxShadow: index === 0 ? '0 0 15px rgba(255, 215, 0, 0.2)' : ''
+                    }}>
+                        <div style={{ width: 30, fontSize: 18, fontWeight: 'bold', color: index < 3 ? 'var(--neon-purple)' : 'var(--color-text-secondary)' }}>
+                            #{index + 1}
+                        </div>
+                        <div style={{ flexGrow: 1, marginLeft: 10 }}>
+                            <div style={{ fontWeight: '700', color: 'var(--color-text-primary)' }}>{user.name} {user.badge}</div>
+                            <div style={{ fontSize: '12px', color: 'var(--color-text-dim)' }}>Level: {getHolderBadge(user.score).title}</div>
+                        </div>
+                        <div className="text-neon" style={{ fontWeight: 'bold' }}>
+                            {user.score.toLocaleString()}
+                        </div>
+                    </div>
+                ))}
+                
+                <div style={{ marginTop: 20, textAlign: 'center', color: 'var(--color-text-secondary)', fontSize: 14 }}>
+                    YOU ARE RANKED <span className="text-neon">#942</span>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// --- YENİ SAYFA: DAO (ANKET) ---
+function DaoPage({ handleBack, showToast }) {
+    const [proposals, setProposals] = useState([
+        { id: 1, title: "Yeni NFT Koleksiyonu Teması?", options: ["Robotik", "Doğa", "Karanlık"], votes: [45, 30, 25], status: "Active" },
+        { id: 2, title: "Haftalık Yakım (Burn) Miktarı", options: ["%1", "%5", "%10"], votes: [10, 60, 30], status: "Ended" }
+    ]);
+
+    const handleVote = (id) => {
+        showToast("Oyunuz Blockchain'e işlendi!", "success");
+    };
+
+    return (
+        <div className="container" style={{ padding: '0' }}>
+            <div className="holo-panel" style={{ display: 'flex', alignItems: 'center', padding: '15px', borderRadius: '0 0 24px 24px', borderTop: 'none', marginTop: '-16px' }}>
+                <button onClick={handleBack} style={{ background: 'none', border: 'none', color: 'var(--neon-purple)', cursor:'pointer' }}><Icons.Back /></button>
+                <h2 style={{ flexGrow: 1, textAlign: 'center', margin: 0, fontSize: '20px', color: 'var(--color-text-primary)' }}>Bluppie DAO</h2>
+                <div style={{ width: 24 }}></div>
+            </div>
+
+            <div style={{ padding: '0 16px', marginTop: 20 }}>
+                {proposals.map((prop) => (
+                    <div key={prop.id} className="holo-panel" style={{ padding: '20px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
+                            <span style={{ fontSize: 10, padding: '4px 8px', borderRadius: 4, background: prop.status === 'Active' ? 'var(--neon-green)' : 'gray', color: '#000', fontWeight: 'bold' }}>{prop.status}</span>
+                            <span style={{ fontSize: 12, color: 'var(--color-text-dim)' }}>ID: #{prop.id}</span>
+                        </div>
+                        <h3 style={{ fontSize: 18, marginBottom: 15, color: 'var(--color-text-primary)' }}>{prop.title}</h3>
+                        
+                        {prop.options.map((opt, idx) => (
+                            <div key={idx} style={{ marginBottom: 10 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, marginBottom: 4, color: 'var(--color-text-secondary)' }}>
+                                    <span>{opt}</span>
+                                    <span>{prop.votes[idx]}%</span>
+                                </div>
+                                <div style={{ height: 6, background: 'rgba(255,255,255,0.1)', borderRadius: 3, overflow: 'hidden' }}>
+                                    <div style={{ width: `${prop.votes[idx]}%`, height: '100%', background: 'var(--neon-purple)' }}></div>
+                                </div>
+                            </div>
+                        ))}
+
+                        {prop.status === 'Active' && (
+                            <button className="cta-btn secondary" onClick={() => handleVote(prop.id)} style={{ marginTop: 15, padding: 10, fontSize: 14 }}>VOTE NOW</button>
+                        )}
+                    </div>
+                ))}
+            </div>
         </div>
     );
 }
@@ -644,7 +723,11 @@ function App() {
     const [showInventoryDetail, setShowInventoryDetail] = useState(false);
     const [selectedInventoryNft, setSelectedInventoryNft] = useState(null);
     const [isInventoryShowingListings, setIsInventoryShowingListings] = useState(false); 
-    const [showTransactionHistoryPage, setShowTransactionHistoryPage] = useState(false); 
+    const [showTransactionHistoryPage, setShowTransactionHistoryPage] = useState(false);
+    
+    // YENİ STATE'LER
+    const [showLeaderboardPage, setShowLeaderboardPage] = useState(false);
+    const [showDaoPage, setShowDaoPage] = useState(false);
 
     const [currentSort, setCurrentSort] = useState('Price: Ascending');
     const [currentCurrency, setCurrentCurrency] = useState('TON');
@@ -679,9 +762,7 @@ function App() {
     }, [isAnyModalOpen]);
 
     // --- DATA FETCHING (TONAPI) ---
-    
     const fetchAllData = async () => {
-        // Cüzdan bağlı değilse bakiyeleri sıfırla
         if (!userFriendlyAddress) {
             setUserTonBalance(0);
             setUserPieBalance(0);
@@ -691,7 +772,6 @@ function App() {
         const headers = TONAPI_KEY ? { 'Authorization': `Bearer ${TONAPI_KEY}` } : {};
 
         try {
-            // 1. TON BAKİYESİ
             const tonRes = await fetch(`https://tonapi.io/v2/accounts/${userFriendlyAddress}`, { headers });
             if (tonRes.ok) {
                 const tonData = await tonRes.json();
@@ -700,7 +780,6 @@ function App() {
                 }
             }
 
-            // 2. PIE BAKİYESİ
             const jettonRes = await fetch(`https://tonapi.io/v2/accounts/${userFriendlyAddress}/jettons`, { headers });
             
             if (jettonRes.ok) {
@@ -725,7 +804,6 @@ function App() {
             console.error("TonAPI Fetch Error:", e); 
         }
 
-        // 3. Backend Verisi
         try {
             const apiData = await apiCall(`/user/${userFriendlyAddress}`);
             setUserInventory(apiData.inventory);
@@ -739,7 +817,6 @@ function App() {
             }
         }
     };
-
 
     useEffect(() => {
         fetchAllData();
@@ -771,15 +848,10 @@ function App() {
     const handlePackPurchase = async () => {
         if (!userFriendlyAddress) { showToast("Connect Wallet First!", "error"); return; }
         
-        // 1. İşlem Hazırlığı
         const amountTON = PACK_PRICE; 
-        
-        // KRİTİK DÜZELTME: 0.01 gibi küçük sayıları tam sayı NanoTON'a çevirirken hata olmaması için Math.floor
         const amountNano = Math.floor(amountTON * 1000000000).toString(); 
 
-        // 2. TonConnect ile Ödeme İsteği Oluştur
         const transaction = {
-            // Zaman aşımını 10 dakikaya (600 saniye) çıkaralım
             validUntil: Math.floor(Date.now() / 1000) + 600, 
             messages: [
                 {
@@ -790,23 +862,16 @@ function App() {
         };
 
         try {
-            // 3. Cüzdanı Aç ve Onay İste
             showToast("Cüzdandan onaylayın...", "success");
             await tonConnectUI.sendTransaction(transaction);
-
-            // 4. İşlem Gönderildi, Şimdi Blockchain'e Düştü mü Kontrol Et
             showToast("Ödeme Doğrulanıyor... Bekleyin...", "success");
             
-            // Burada doğrulama için bekliyoruz (Güvenli, Hedef Kontrollü)
             const isConfirmed = await waitForTransaction(userFriendlyAddress, amountTON);
 
             if (isConfirmed) {
-                // 5. ÖDEME ONAYLANDI! -> NFT VER
                 showToast(`BAŞARILI! Paket açıldı!`, 'success');
                 setPacksSold(prev => prev + 1);
                 
-                // (Eğer backend varsa burada backend'e istek atılır)
-                // Demo için envantere ekliyoruz:
                 const newNft = { id: Date.now(), name: "Plush Bluppie", item_number: packsSold + 1, image_url: BLUPPIE_NFT_URL, status: "Owned" };
                 setUserInventory(prev => [...prev, newNft]);
                 
@@ -837,7 +902,10 @@ function App() {
         setShowListingPage(false); 
         setShowInventoryDetail(false);
         setShowStakingPage(false); 
-        setShowTransactionHistoryPage(false); 
+        setShowTransactionHistoryPage(false);
+        // Yeni sayfaları da kapat
+        setShowLeaderboardPage(false);
+        setShowDaoPage(false);
     };
     
     const handleNavClick = (tab) => {
@@ -888,18 +956,15 @@ function App() {
             showToast('Transaction Failed or Insufficient Funds', 'error');
         }
     };
-    
-    const handlePackPurchaseAction = async () => {
-       // Bu fonksiyon sadece buton tetikleyicisi olarak kullanılabilir
-       // Asıl işi handlePackPurchase yapıyor
-       handlePackPurchase();
-    };
 
     const renderContent = () => {
+        // Tam sayfa görünümler
         if (showInventoryPage) return <InventoryPage handleBack={handleCloseFullPageViews} openDetails={(nft)=>{setSelectedInventoryNft(nft); setShowInventoryDetail(true);}} inventory={userInventory} isShowingListings={isInventoryShowingListings} toggleView={setIsInventoryShowingListings} />;
         if (showListingPage) return <ListingPage handleBack={handleCloseFullPageViews} inventory={userInventory.filter(nft => nft.status === 'Owned')} showToast={showToast} finalizeListing={handleFinalizeListing} />;
         if (showStakingPage) return <StakingPage handleBack={handleCloseFullPageViews} pieBalance={formattedPieBalance} showToast={showToast} />;
         if (showTransactionHistoryPage) return <TransactionHistoryPage handleBack={handleCloseFullPageViews} history={transactionHistory} />;
+        if (showLeaderboardPage) return <LeaderboardPage handleBack={handleCloseFullPageViews} userScore={userPieBalance} />;
+        if (showDaoPage) return <DaoPage handleBack={handleCloseFullPageViews} showToast={showToast} />;
         
         if (activeTab === 'Menu') {
             return (
@@ -976,19 +1041,25 @@ function App() {
                 </div>
             );
         } else if (activeTab === 'Profile') {
+            const badge = getHolderBadge(userPieBalance); 
+
             return (
                 <React.Fragment>
                     <div className="holo-panel pulse-glow">
                         <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
                             <img 
                                 src={telegramUser?.photo_url || BLUPPIE_NFT_URL} 
-                                style={{ width: '64px', height: '64px', borderRadius: '50%', border: '2px solid var(--neon-purple)', padding: 2 }} 
+                                style={{ width: '64px', height: '64px', borderRadius: '50%', border: `2px solid ${badge.color}`, padding: 2, boxShadow: badge.glow }} 
                             />
                             <div style={{ marginLeft: '15px' }}>
-                                <div style={{ fontSize: '20px', fontWeight: '700', color: 'var(--color-text-primary)' }}>
-                                    {telegramUser ? (telegramUser.first_name + ' ' + (telegramUser.last_name || '')) : 'Guest User'}
+                                <div style={{ fontSize: '20px', fontWeight: '700', color: 'var(--color-text-primary)', display:'flex', alignItems:'center', gap: 5 }}>
+                                    {telegramUser ? (telegramUser.first_name) : 'Guest'} 
+                                    <span style={{fontSize: 14}}>{badge.icon}</span>
                                 </div>
-                                <div style={{ fontSize: '12px', color: !userFriendlyAddress ? 'var(--neon-red)' : 'var(--neon-green)', fontFamily: 'monospace' }}>
+                                <div style={{ fontSize: '12px', color: badge.color, fontWeight: 'bold', letterSpacing: 1 }}>
+                                    {badge.title} LEVEL
+                                </div>
+                                <div style={{ fontSize: '12px', color: !userFriendlyAddress ? 'var(--neon-red)' : 'var(--neon-green)', fontFamily: 'monospace', marginTop: 4 }}>
                                     {userFriendlyAddress ? displayAddress : 'Wallet Not Connected'}
                                 </div>
                             </div>
@@ -999,6 +1070,14 @@ function App() {
                         </div>
 
                         <div style={{ marginBottom: '10px' }}>
+                            <button className="menu-item-button" style={{ width: '100%', background: 'transparent', color: 'var(--color-text-primary)', padding: '15px 0', display: 'flex', justifyContent: 'space-between', cursor:'pointer', border:'none', borderBottom:'1px solid var(--color-glass-border)' }} onClick={() => setShowLeaderboardPage(true)}>
+                                <span style={{display:'flex', alignItems:'center', gap:10}}>🏆 Leaderboard</span> 
+                                <Icons.ArrowRight />
+                            </button>
+                            <button className="menu-item-button" style={{ width: '100%', background: 'transparent', color: 'var(--color-text-primary)', padding: '15px 0', display: 'flex', justifyContent: 'space-between', cursor:'pointer', border:'none', borderBottom:'1px solid var(--color-glass-border)' }} onClick={() => setShowDaoPage(true)}>
+                                <span style={{display:'flex', alignItems:'center', gap:10}}>🗳️ Governance (DAO)</span> 
+                                <Icons.ArrowRight />
+                            </button>
                             <button className="menu-item-button" style={{ width: '100%', background: 'transparent', color: 'var(--color-text-primary)', padding: '15px 0', display: 'flex', justifyContent: 'space-between', cursor:'pointer', border:'none', borderBottom:'1px solid var(--color-glass-border)' }} onClick={() => setShowInventoryPage(true)}>
                                 <span style={{display:'flex', alignItems:'center', gap:10}}><Icons.Market /> Inventory</span> 
                                 <Icons.ArrowRight />
@@ -1016,11 +1095,26 @@ function App() {
 
                     <div className="holo-panel"> 
                         <div className="nft-title" style={{fontSize: 18, color: 'var(--color-text-primary)'}}><Icons.Friends /> Referrals</div>
-                        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '15px', justifyContent: 'space-between', color: 'var(--color-text-primary)' }}>
-                            <span className="text-dim">Total Invites</span>
-                            <span className="text-neon" style={{ fontSize: '18px', fontWeight: '800' }}>0</span>
+                        
+                        <div style={{display: 'flex', gap: 10, marginBottom: 15}}>
+                            <div style={{flex: 1, background: 'rgba(0,0,0,0.03)', padding: 10, borderRadius: 12, textAlign:'center'}}>
+                                <div className="text-dim" style={{fontSize: 10}}>FRIENDS</div>
+                                <div className="text-neon" style={{fontSize: 18, fontWeight: 'bold'}}>3</div>
+                            </div>
+                            <div style={{flex: 1, background: 'rgba(0,0,0,0.03)', padding: 10, borderRadius: 12, textAlign:'center'}}>
+                                <div className="text-dim" style={{fontSize: 10}}>EARNED</div>
+                                <div className="text-green" style={{fontSize: 18, fontWeight: 'bold'}}>150 PIE</div>
+                            </div>
                         </div>
-                        <button className="cta-btn" onClick={async () => { await navigator.clipboard.writeText(userFriendlyAddress); showToast('UPLINK COPIED', 'success'); }}>Invite Friends</button>
+
+                        <div style={{marginBottom: 15, fontSize: 12, color: 'var(--color-text-secondary)'}}>
+                            Invite friends and earn <span className="text-neon">%10</span> of their mints!
+                        </div>
+
+                        <div style={{ display: 'flex', gap: 10 }}>
+                            <button className="cta-btn secondary" style={{flex: 1, fontSize: 14, padding: 10}} onClick={() => showToast('Rewards Claimed!', 'success')}>CLAIM</button>
+                            <button className="cta-btn" style={{flex: 1, fontSize: 14, padding: 10}} onClick={async () => { await navigator.clipboard.writeText(`https://t.me/BluppieBot?start=${userFriendlyAddress}`); showToast('LINK COPIED', 'success'); }}>INVITE</button>
+                        </div>
                     </div>
                 </React.Fragment>
             );

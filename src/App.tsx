@@ -6,7 +6,7 @@ import { TonConnectButton, useTonAddress, useTonConnectUI } from '@tonconnect/ui
 
 // --- GÜVENLİ DEĞİŞKENLER (.env) ---
 const TONAPI_KEY = import.meta.env.VITE_TONAPI_KEY; 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_URL = import.meta.env.VITE_API_URL || "https://bluppie-backend.onrender.com";
 
 // --- SABİTLER ---
 const PIE_TOKEN_CONTRACT = "0:e0207601eb9ea16324c92a1d1b74ed8004d01c2d76b8e7022126b02980913c36"; 

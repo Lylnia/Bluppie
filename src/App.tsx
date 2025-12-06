@@ -4,9 +4,11 @@ import './index.css';
 import WebApp from '@twa-dev/sdk';
 import { TonConnectButton, useTonAddress, useTonConnectUI } from '@tonconnect/ui-react';
 
-// --- GÜVENLİ DEĞİŞKENLER (.env) ---
+// --- AYARLAR ---
+// DİKKAT: Buraya kendi Render.com linkini yapıştır (sonunda / olmasın)
+const API_URL = "https://bluppie-backend.onrender.com"; 
+
 const TONAPI_KEY = import.meta.env.VITE_TONAPI_KEY; 
-const API_URL = import.meta.env.VITE_API_URL || "https://bluppie-backend.onrender.com";
 
 // --- SABİTLER ---
 const PIE_TOKEN_CONTRACT = "0:e0207601eb9ea16324c92a1d1b74ed8004d01c2d76b8e7022126b02980913c36"; 
@@ -42,7 +44,9 @@ async function apiCall(endpoint, method = 'GET', body = null) {
     };
     if (body) options.body = JSON.stringify(body);
     try {
-        const res = await fetch(`${API_URL}${endpoint}`, options);
+        // API URL kontrolü
+        const baseUrl = API_URL.includes("localhost") ? API_URL : API_URL.replace(/\/$/, "");
+        const res = await fetch(`${baseUrl}${endpoint}`, options);
         if (!res.ok) throw new Error('API Error');
         return await res.json();
     } catch (error) {
@@ -94,9 +98,7 @@ const waitForTransaction = async (address, expectedAmount) => {
     });
 };
 
-// --- YENİ MANTIK: HOLDER BADGE ---
 const getHolderBadge = (balance) => {
-    // Bakiyeye göre seviye belirleme
     if (balance >= 100000) return { title: "WHALE KING", color: "#FFD700", icon: "👑", glow: "0 0 15px rgba(255, 215, 0, 0.6)" }; 
     if (balance >= 50000) return { title: "DIAMOND HAND", color: "#00CED1", icon: "💎", glow: "0 0 10px rgba(0, 206, 209, 0.5)" }; 
     if (balance >= 10000) return { title: "SHARK", color: "#FF5C8D", icon: "🦈", glow: "none" }; 
@@ -118,15 +120,22 @@ function Toast({ show, message, type }) {
     );
 }
 
-// --- YENİ SAYFA: LEADERBOARD ---
-function LeaderboardPage({ handleBack, userScore }) {
-    const [leaders] = useState([
-        { id: 1, name: "CryptoKing", score: 250000, badge: "👑" },
-        { id: 2, name: "TonMaster", score: 180000, badge: "💎" },
-        { id: 3, name: "BluppieFan", score: 120000, badge: "💎" },
-        { id: 4, name: "HODLer_99", score: 95000, badge: "🦈" },
-        { id: 5, name: "WhaleWatcher", score: 50000, badge: "🦈" },
-    ]);
+// --- LIVE LEADERBOARD (API'den Çeker) ---
+function LeaderboardPage({ handleBack }) {
+    const [leaders, setLeaders] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        apiCall('/leaderboard')
+            .then((data) => {
+                setLeaders(data);
+                setLoading(false);
+            })
+            .catch(err => {
+                console.error(err);
+                setLoading(false);
+            });
+    }, []);
 
     return (
         <div className="container" style={{ padding: '0' }}>
@@ -137,7 +146,9 @@ function LeaderboardPage({ handleBack, userScore }) {
             </div>
 
             <div style={{ padding: '0 16px', marginTop: 20 }}>
-                {leaders.map((user, index) => (
+                {loading && <div style={{textAlign:'center', padding: 20}} className="text-dim">Loading database...</div>}
+                
+                {!loading && leaders.map((user, index) => (
                     <div key={user.id} className="holo-panel" style={{ 
                         padding: '15px', 
                         display: 'flex', 
@@ -151,31 +162,45 @@ function LeaderboardPage({ handleBack, userScore }) {
                         </div>
                         <div style={{ flexGrow: 1, marginLeft: 10 }}>
                             <div style={{ fontWeight: '700', color: 'var(--color-text-primary)' }}>{user.name} {user.badge}</div>
-                            <div style={{ fontSize: '12px', color: 'var(--color-text-dim)' }}>Level: {getHolderBadge(user.score).title}</div>
+                            <div style={{ fontSize: '12px', color: 'var(--color-text-dim)' }}>
+                                {index === 0 ? "WHALE KING" : index < 3 ? "DIAMOND HAND" : "HOLDER"}
+                            </div>
                         </div>
                         <div className="text-neon" style={{ fontWeight: 'bold' }}>
                             {user.score.toLocaleString()}
                         </div>
                     </div>
                 ))}
-                
-                <div style={{ marginTop: 20, textAlign: 'center', color: 'var(--color-text-secondary)', fontSize: 14 }}>
-                    YOU ARE RANKED <span className="text-neon">#942</span>
-                </div>
+                {!loading && leaders.length === 0 && <div className="text-dim" style={{textAlign:'center'}}>No Data Found</div>}
             </div>
         </div>
     );
 }
 
-// --- YENİ SAYFA: DAO (ANKET) ---
-function DaoPage({ handleBack, showToast }) {
+// --- LIVE DAO (Oylama API'ye Gider) ---
+function DaoPage({ handleBack, showToast, userAddress }) {
+    // Not: Gerçek bir projede Anket Başlıkları da API'den gelir. 
+    // Şimdilik başlıklar sabit, oylar veritabanına gidiyor.
     const [proposals, setProposals] = useState([
-        { id: 1, title: "Yeni NFT Koleksiyonu Teması?", options: ["Robotik", "Doğa", "Karanlık"], votes: [45, 30, 25], status: "Active" },
-        { id: 2, title: "Haftalık Yakım (Burn) Miktarı", options: ["%1", "%5", "%10"], votes: [10, 60, 30], status: "Ended" }
+        { id: 1, title: "Next Collection Theme?", options: ["Cyberpunk", "Nature", "Space"], votes: [45, 30, 25], status: "Active" },
+        { id: 2, title: "Weekly Burn Rate", options: ["1%", "5%", "10%"], votes: [10, 60, 30], status: "Ended" }
     ]);
+    const [voting, setVoting] = useState(false);
 
-    const handleVote = (id) => {
-        showToast("Oyunuz Blockchain'e işlendi!", "success");
+    const handleVote = async (proposalId, optionIndex) => {
+        if(!userAddress) { showToast("Connect Wallet first!", "error"); return; }
+        setVoting(true);
+        try {
+            await apiCall('/dao/vote', 'POST', {
+                proposal_id: proposalId,
+                voter_address: userAddress,
+                option_index: optionIndex
+            });
+            showToast("Vote Submitted to Chain!", "success");
+        } catch(e) {
+            showToast("Voting Failed", "error");
+        }
+        setVoting(false);
     };
 
     return (
@@ -199,17 +224,23 @@ function DaoPage({ handleBack, showToast }) {
                             <div key={idx} style={{ marginBottom: 10 }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, marginBottom: 4, color: 'var(--color-text-secondary)' }}>
                                     <span>{opt}</span>
+                                    {/* Yüzdeler şimdilik statik, gerçekte API'den güncellenir */}
                                     <span>{prop.votes[idx]}%</span>
                                 </div>
                                 <div style={{ height: 6, background: 'rgba(255,255,255,0.1)', borderRadius: 3, overflow: 'hidden' }}>
                                     <div style={{ width: `${prop.votes[idx]}%`, height: '100%', background: 'var(--neon-purple)' }}></div>
                                 </div>
+                                {prop.status === 'Active' && (
+                                    <button 
+                                        onClick={() => handleVote(prop.id, idx)}
+                                        disabled={voting}
+                                        style={{marginTop: 5, background:'none', border:'1px solid var(--color-glass-border)', color:'var(--color-text-dim)', borderRadius: 8, padding: '4px 8px', fontSize: 10, cursor:'pointer'}}
+                                    >
+                                        Vote This
+                                    </button>
+                                )}
                             </div>
                         ))}
-
-                        {prop.status === 'Active' && (
-                            <button className="cta-btn secondary" onClick={() => handleVote(prop.id)} style={{ marginTop: 15, padding: 10, fontSize: 14 }}>VOTE NOW</button>
-                        )}
                     </div>
                 ))}
             </div>
@@ -761,7 +792,7 @@ function App() {
         return () => { document.body.style.overflow = ''; };
     }, [isAnyModalOpen]);
 
-    // --- DATA FETCHING (TONAPI) ---
+    // --- DATA FETCHING (TONAPI + BACKEND) ---
     const fetchAllData = async () => {
         if (!userFriendlyAddress) {
             setUserTonBalance(0);
@@ -769,6 +800,7 @@ function App() {
             return;
         }
 
+        // 1. TONAPI (Gerçek Cüzdan Bakiyeleri)
         const headers = TONAPI_KEY ? { 'Authorization': `Bearer ${TONAPI_KEY}` } : {};
 
         try {
@@ -781,15 +813,12 @@ function App() {
             }
 
             const jettonRes = await fetch(`https://tonapi.io/v2/accounts/${userFriendlyAddress}/jettons`, { headers });
-            
             if (jettonRes.ok) {
                 const jettonData = await jettonRes.json();
-
                 if (jettonData && jettonData.balances) {
                     const pieToken = jettonData.balances.find(token => {
                         return token.jetton.address === PIE_TOKEN_CONTRACT;
                     });
-
                     if (pieToken) {
                         const decimals = pieToken.jetton.decimals || 9; 
                         const rawBalance = parseFloat(pieToken.balance);
@@ -804,17 +833,14 @@ function App() {
             console.error("TonAPI Fetch Error:", e); 
         }
 
+        // 2. BACKEND (Envanter, Geçmiş, vb.)
         try {
             const apiData = await apiCall(`/user/${userFriendlyAddress}`);
-            setUserInventory(apiData.inventory);
-            setTransactionHistory(apiData.transactions);
+            setUserInventory(apiData.inventory || []);
+            setTransactionHistory(apiData.transactions || []);
+            // Backend'den de bakiye gelebilir ama TONAPI daha günceldir, o yüzden üstüne yazmıyoruz.
         } catch (e) {
-            if (userInventory.length === 0) {
-                setUserInventory([
-                    { id: 1, name: "Plush Bluppie", item_number: 1, image_url: BLUPPIE_NFT_URL, status: "Owned" },
-                    { id: 2, name: "Plush Bluppie", item_number: 10, image_url: BLUPPIE_NFT_URL, status: "Owned" }
-                ]);
-            }
+            console.error("User data fetch failed", e);
         }
     };
 
@@ -862,27 +888,29 @@ function App() {
         };
 
         try {
-            showToast("Cüzdandan onaylayın...", "success");
+            showToast("Confirm transaction in wallet...", "success");
             await tonConnectUI.sendTransaction(transaction);
-            showToast("Ödeme Doğrulanıyor... Bekleyin...", "success");
+            showToast("Verifying payment...", "success");
             
             const isConfirmed = await waitForTransaction(userFriendlyAddress, amountTON);
 
             if (isConfirmed) {
-                showToast(`BAŞARILI! Paket açıldı!`, 'success');
+                showToast(`SUCCESS! Pack Opened!`, 'success');
                 setPacksSold(prev => prev + 1);
                 
+                // NOT: Backend'de "Mint" endpointi olmadığı için şimdilik lokal ekliyoruz.
+                // Gerçek senaryoda backend'e "Mintle" isteği atılmalı.
                 const newNft = { id: Date.now(), name: "Plush Bluppie", item_number: packsSold + 1, image_url: BLUPPIE_NFT_URL, status: "Owned" };
                 setUserInventory(prev => [...prev, newNft]);
                 
                 setShowNewPackModal(false);
             } else {
-                showToast("Ödeme doğrulanamadı veya zaman aşımı.", "error");
+                showToast("Payment verification timed out.", "error");
             }
 
         } catch (e) {
             console.error(e);
-            showToast('İşlem iptal edildi.', 'error');
+            showToast('Transaction cancelled.', 'error');
         }
     };
 
@@ -903,7 +931,6 @@ function App() {
         setShowInventoryDetail(false);
         setShowStakingPage(false); 
         setShowTransactionHistoryPage(false);
-        // Yeni sayfaları da kapat
         setShowLeaderboardPage(false);
         setShowDaoPage(false);
     };
@@ -958,13 +985,12 @@ function App() {
     };
 
     const renderContent = () => {
-        // Tam sayfa görünümler
         if (showInventoryPage) return <InventoryPage handleBack={handleCloseFullPageViews} openDetails={(nft)=>{setSelectedInventoryNft(nft); setShowInventoryDetail(true);}} inventory={userInventory} isShowingListings={isInventoryShowingListings} toggleView={setIsInventoryShowingListings} />;
         if (showListingPage) return <ListingPage handleBack={handleCloseFullPageViews} inventory={userInventory.filter(nft => nft.status === 'Owned')} showToast={showToast} finalizeListing={handleFinalizeListing} />;
         if (showStakingPage) return <StakingPage handleBack={handleCloseFullPageViews} pieBalance={formattedPieBalance} showToast={showToast} />;
         if (showTransactionHistoryPage) return <TransactionHistoryPage handleBack={handleCloseFullPageViews} history={transactionHistory} />;
-        if (showLeaderboardPage) return <LeaderboardPage handleBack={handleCloseFullPageViews} userScore={userPieBalance} />;
-        if (showDaoPage) return <DaoPage handleBack={handleCloseFullPageViews} showToast={showToast} />;
+        if (showLeaderboardPage) return <LeaderboardPage handleBack={handleCloseFullPageViews} />;
+        if (showDaoPage) return <DaoPage handleBack={handleCloseFullPageViews} showToast={showToast} userAddress={userFriendlyAddress} />;
         
         if (activeTab === 'Menu') {
             return (

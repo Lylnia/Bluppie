@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 app = FastAPI()
 
+# --- CORS AYARLARI ---
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -46,7 +47,7 @@ class VoteRequest(BaseModel):
 class MintRequest(BaseModel):
     owner_address: str
     name: str
-    item_number: int
+    item_number: int  # Frontend'den 0 gelir, backend bunu görmezden gelir
     image_url: str
 
 # --- YARDIMCI ---
@@ -60,15 +61,14 @@ def seed_user(address: str):
     c = conn.cursor()
     user = c.execute("SELECT * FROM users WHERE address = ?", (address,)).fetchone()
     if not user:
-        # DÜZELTME: Artık hediye yok. 0 TON, 0 PIE, 0 XP ile başlar.
+        # Yeni kullanıcı: 0 Bakiye, 0 NFT
         c.execute("INSERT INTO users VALUES (?, ?, ?, ?)", (address, 0, 0, 0))
-        # NFT Hediye kodu silindi.
         conn.commit()
     conn.close()
 
 # --- ENDPOINTS ---
 @app.get("/")
-def read_root(): return {"status": "Bluppie Backend Live"}
+def read_root(): return {"status": "Bluppie Backend Live 🟢"}
 
 @app.get("/user/{address}")
 def get_user(address: str):
@@ -92,15 +92,46 @@ def get_market(viewer_address: str):
     conn.close()
     return [dict(row) for row in items]
 
+# --- YENİ STATS ENDPOINT (BAR İÇİN) ---
+@app.get("/stats")
+def get_stats():
+    conn = get_db()
+    # Sadece Plush Bluppie olanları say
+    count = conn.execute("SELECT COUNT(*) FROM inventory WHERE name = 'Plush Bluppie'").fetchone()[0]
+    conn.close()
+    return {"total_minted": count}
+
+# --- GÜNCELLENMİŞ MINT (RASTGELE UNIQ ID) ---
 @app.post("/mint")
 def mint_nft(req: MintRequest):
     conn = get_db()
-    nft_id = random.randint(1000000, 9999999)
-    conn.execute("INSERT INTO inventory (id, owner_address, name, item_number, image_url, status, price, currency) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                 (nft_id, req.owner_address, req.name, req.item_number, req.image_url, "Owned", 0, "TON"))
+    c = conn.cursor()
+    
+    # 1. Şu ana kadar alınmış tüm ID'leri bul
+    used_ids_query = c.execute("SELECT item_number FROM inventory WHERE name = 'Plush Bluppie'").fetchall()
+    used_ids = {row[0] for row in used_ids_query}
+    
+    # 2. 1'den 1000'e kadar olan sayılardan boş olanları bul
+    all_ids = set(range(1, 1001))
+    available_ids = list(all_ids - used_ids)
+    
+    # 3. Yer kalmadıysa hata ver
+    if not available_ids:
+        conn.close()
+        raise HTTPException(status_code=400, detail="SOLD OUT! Tükendi.")
+    
+    # 4. Rastgele bir tane seç
+    random_id = random.choice(available_ids)
+    
+    # 5. Kaydet
+    nft_unique_id = random.randint(1000000, 9999999) # DB için benzersiz satır ID'si
+    c.execute("INSERT INTO inventory (id, owner_address, name, item_number, image_url, status, price, currency) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                 (nft_unique_id, req.owner_address, "Plush Bluppie", random_id, req.image_url, "Owned", 0, "TON"))
+    
     conn.commit()
     conn.close()
-    return {"status": "success", "nft_id": nft_id}
+    
+    return {"status": "success", "minted_id": random_id}
 
 @app.post("/marketplace/list")
 def list_nft(req: ListRequest):

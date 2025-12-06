@@ -4,8 +4,8 @@ import './index.css';
 import WebApp from '@twa-dev/sdk';
 import { TonConnectButton, useTonAddress, useTonConnectUI } from '@tonconnect/ui-react';
 
-// --- AYARLAR ---
-// Render linkini buraya yapıştır (sonunda / olmasın)
+// --- ÖNEMLİ AYAR ---
+// Render linkini buraya yapıştır (sonunda / işareti OLMASIN)
 const API_URL = "https://bluppie-backend.onrender.com"; 
 
 const TONAPI_KEY = import.meta.env.VITE_TONAPI_KEY; 
@@ -54,14 +54,18 @@ async function apiCall(endpoint, method = 'GET', body = null) {
     }
 }
 
+// GÜNCELLENDİ: Daha uzun süre bekler (60 deneme x 3 saniye = 3 Dakika)
 const waitForTransaction = async (address, expectedAmount) => {
-    const maxRetries = 20; 
+    const maxRetries = 60; 
     let retries = 0;
     const targetWallet = ADMIN_WALLET_ADDRESS.toLowerCase(); 
 
     return new Promise((resolve) => {
         const interval = setInterval(async () => {
             retries++;
+            // Konsola yazalım ki debug yapabilelim
+            console.log(`Checking tx try ${retries}...`);
+            
             try {
                 const res = await fetch(`https://tonapi.io/v2/blockchain/accounts/${address}/transactions?limit=10`, {
                     headers: TONAPI_KEY ? { 'Authorization': `Bearer ${TONAPI_KEY}` } : {}
@@ -72,10 +76,12 @@ const waitForTransaction = async (address, expectedAmount) => {
                     const foundTx = data.transactions.find(tx => {
                         if (tx.out_msgs.length === 0) return false;
                         const msg = tx.out_msgs[0];
+                        // Miktarı toleranslı kontrol et
                         const amountMatch = Math.abs(msg.value - (expectedAmount * 1000000000)) < 20000000; 
                         const txTime = tx.utime;
                         const now = Math.floor(Date.now() / 1000);
-                        const isRecent = (now - txTime) < 120;
+                        // Son 5 dakikaya bak
+                        const isRecent = (now - txTime) < 300;
                         let txDestination = "";
                         if (msg.destination) {
                             txDestination = typeof msg.destination === 'object' ? msg.destination.address : msg.destination;
@@ -884,10 +890,22 @@ function App() {
         fetchMarketplace();
     }, [currentSort, marketplaceSearch]);
 
-    // --- ACTIONS ---
+    // --- DEBUG MODLU SATIN ALMA FONKSİYONU ---
     const handlePackPurchase = async () => {
-        if (!userFriendlyAddress) { showToast("Connect Wallet First!", "error"); return; }
+        if (!userFriendlyAddress) { alert("Cüzdan bağlı değil!"); return; }
         
+        // 1. Backend Ayakta mı Kontrol Et
+        try {
+            const check = await apiCall('/');
+            if (!check || check.status !== "Bluppie Backend Live 🟢") {
+                alert("HATA: Backend sunucusu (Render) yanıt vermiyor. Linki kontrol et veya sunucunun uyanmasını bekle.");
+                return;
+            }
+        } catch (e) {
+            alert("BAĞLANTI HATASI: API_URL yanlış girilmiş olabilir. Şunu kontrol et: " + API_URL);
+            return;
+        }
+
         const amountTON = PACK_PRICE; 
         const amountNano = Math.floor(amountTON * 1000000000).toString(); 
 
@@ -897,17 +915,18 @@ function App() {
         };
 
         try {
-            showToast("Confirm transaction...", "success");
+            // 2. Cüzdan İşlemi
             await tonConnectUI.sendTransaction(transaction);
-            showToast("Verifying payment...", "success");
+            showToast("Ödeme gönderildi, blockchain onayı bekleniyor...", "success");
             
+            // 3. Doğrulama (Burası mobilde uzun sürebilir)
             const isConfirmed = await waitForTransaction(userFriendlyAddress, amountTON);
 
             if (isConfirmed) {
-                showToast(`SUCCESS! Minting NFT...`, 'success');
+                showToast(`Ödeme Onaylandı! NFT Üretiliyor...`, 'success');
                 
+                // 4. Backend'e Mint İsteği
                 try {
-                    // Backend'e sadece "Bana mintle" diyoruz. ID'yi o seçecek.
                     const mintRes = await apiCall('/mint', 'POST', {
                         owner_address: userFriendlyAddress,
                         name: "Plush Bluppie",
@@ -916,24 +935,22 @@ function App() {
                     });
 
                     if (mintRes && mintRes.status === 'success') {
-                         showToast(`You got Plush Bluppie #${mintRes.minted_id}!`, 'success');
-                         // Barı +1 yükselt
+                         alert(`BAŞARILI! Plush Bluppie #${mintRes.minted_id} senin oldu!`);
                          setPacksSold(prev => prev + 1);
-                         // Envanteri yenile
-                         fetchAllData();
+                         fetchAllData(); // Envanteri yenile
+                         setShowNewPackModal(false);
+                    } else {
+                        alert("HATA: Ödeme alındı ama Backend 'Mint' işlemini yapamadı. Veritabanı hatası olabilir.");
                     }
                 } catch (mintError) {
-                    console.error("Mint error:", mintError);
-                    showToast("Mint error: Sold out or System error.", "error");
+                    alert("KRİTİK HATA: Mint isteği sunucuya ulaşmadı. Render loglarına bak.");
                 }
-                
-                setShowNewPackModal(false);
             } else {
-                showToast("Payment verification timed out.", "error");
+                alert("ZAMAN AŞIMI: Ödeme blockchain'de 3 dakika içinde görülemedi. Lütfen sayfayı yenile ve envanterini kontrol et.");
             }
         } catch (e) {
             console.error(e);
-            showToast('Transaction cancelled.', 'error');
+            showToast('İşlem iptal edildi veya hata oluştu.', 'error');
         }
     };
 
@@ -1116,6 +1133,24 @@ function App() {
 
                         <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'center' }}>
                              <TonConnectButton />
+                        </div>
+
+                        {/* YENİ: BAĞLANTI TESTİ VE REFRESH BUTONLARI */}
+                        <div style={{display:'flex', gap: 10, marginBottom: 15}}>
+                            <button className="cta-btn secondary" style={{fontSize: 12, padding: 8}} onClick={async () => {
+                                try {
+                                    const res = await apiCall('/');
+                                    alert("Bağlantı Başarılı: " + res.status);
+                                } catch(e) { alert("Bağlantı Hatası! API URL'yi kontrol et."); }
+                            }}>
+                                📡 TEST CONNECTION
+                            </button>
+                            <button className="cta-btn secondary" style={{fontSize: 12, padding: 8}} onClick={() => {
+                                fetchAllData();
+                                showToast("Data refreshed!", "success");
+                            }}>
+                                🔄 REFRESH DATA
+                            </button>
                         </div>
 
                         <div style={{ marginBottom: '10px' }}>

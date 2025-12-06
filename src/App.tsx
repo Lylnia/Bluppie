@@ -5,7 +5,7 @@ import WebApp from '@twa-dev/sdk';
 import { TonConnectButton, useTonAddress, useTonConnectUI } from '@tonconnect/ui-react';
 
 // --- AYARLAR ---
-// DİKKAT: Buraya kendi Render.com linkini yapıştır (sonunda / olmasın)
+// Render linkini buraya yapıştır (sonunda / olmasın)
 const API_URL = "https://bluppie-backend.onrender.com"; 
 
 const TONAPI_KEY = import.meta.env.VITE_TONAPI_KEY; 
@@ -44,7 +44,6 @@ async function apiCall(endpoint, method = 'GET', body = null) {
     };
     if (body) options.body = JSON.stringify(body);
     try {
-        // API URL kontrolü
         const baseUrl = API_URL.includes("localhost") ? API_URL : API_URL.replace(/\/$/, "");
         const res = await fetch(`${baseUrl}${endpoint}`, options);
         if (!res.ok) throw new Error('API Error');
@@ -120,7 +119,6 @@ function Toast({ show, message, type }) {
     );
 }
 
-// --- LIVE LEADERBOARD (API'den Çeker) ---
 function LeaderboardPage({ handleBack }) {
     const [leaders, setLeaders] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -171,16 +169,13 @@ function LeaderboardPage({ handleBack }) {
                         </div>
                     </div>
                 ))}
-                {!loading && leaders.length === 0 && <div className="text-dim" style={{textAlign:'center'}}>No Data Found</div>}
+                {!loading && leaders.length === 0 && <div className="text-dim" style={{textAlign:'center', marginTop:20}}>No Data Found</div>}
             </div>
         </div>
     );
 }
 
-// --- LIVE DAO (Oylama API'ye Gider) ---
 function DaoPage({ handleBack, showToast, userAddress }) {
-    // Not: Gerçek bir projede Anket Başlıkları da API'den gelir. 
-    // Şimdilik başlıklar sabit, oylar veritabanına gidiyor.
     const [proposals, setProposals] = useState([
         { id: 1, title: "Next Collection Theme?", options: ["Cyberpunk", "Nature", "Space"], votes: [45, 30, 25], status: "Active" },
         { id: 2, title: "Weekly Burn Rate", options: ["1%", "5%", "10%"], votes: [10, 60, 30], status: "Ended" }
@@ -224,7 +219,6 @@ function DaoPage({ handleBack, showToast, userAddress }) {
                             <div key={idx} style={{ marginBottom: 10 }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, marginBottom: 4, color: 'var(--color-text-secondary)' }}>
                                     <span>{opt}</span>
-                                    {/* Yüzdeler şimdilik statik, gerçekte API'den güncellenir */}
                                     <span>{prop.votes[idx]}%</span>
                                 </div>
                                 <div style={{ height: 6, background: 'rgba(255,255,255,0.1)', borderRadius: 3, overflow: 'hidden' }}>
@@ -509,11 +503,15 @@ function InventoryDetailModal({ show, onClose, nft, showToast, isListed, deList 
 
 function NewPackModal({ show, onClose, showToast, handlePackPurchase, packsSold, userBalance }) {
     if (!show) return null;
-    const remaining = TOTAL_PACK_SUPPLY - packsSold; 
-    const progressPercent = (packsSold / TOTAL_PACK_SUPPLY) * 100; 
+    const TOTAL_SUPPLY = 1000;
+    const progressPercent = (packsSold / TOTAL_SUPPLY) * 100; 
+    
+    // Satış bitti mi kontrolü
+    const isSoldOut = packsSold >= TOTAL_SUPPLY;
     const canAfford = userBalance >= PACK_PRICE;
 
     const handlePurchase = () => {
+        if (isSoldOut) return;
         if (!canAfford) { showToast(`INSUFFICIENT CREDITS: ${PACK_PRICE.toFixed(2)} TON required.`, 'error'); return; }
         handlePackPurchase(); 
     };
@@ -554,8 +552,13 @@ function NewPackModal({ show, onClose, showToast, handlePackPurchase, packsSold,
                     </div>
                 </div>
                 
-                <button className="cta-btn" onClick={handlePurchase} disabled={!canAfford}>
-                    {canAfford ? 'MINT' : 'INSUFFICIENT FUNDS'}
+                <button 
+                    className="cta-btn" 
+                    onClick={handlePurchase} 
+                    disabled={!canAfford || isSoldOut}
+                    style={{ background: isSoldOut ? '#555' : 'var(--neon-purple)' }}
+                >
+                    {isSoldOut ? 'SOLD OUT' : canAfford ? 'MINT' : 'INSUFFICIENT FUNDS'}
                 </button>
             </div>
         </div>
@@ -764,7 +767,10 @@ function App() {
     const [currentCurrency, setCurrentCurrency] = useState('TON');
     const [marketplaceListings, setMarketplaceListings] = useState([]);
     const [marketplaceSearch, setMarketplaceSearch] = useState('');
-    const [packsSold, setPacksSold] = useState(10);
+    
+    // YENİ DÜZELTME: Sayaç 0'dan başlıyor
+    const [packsSold, setPacksSold] = useState(0);
+    
     const [transactionHistory, setTransactionHistory] = useState([]);
     const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
@@ -888,7 +894,7 @@ function App() {
         };
 
         try {
-            showToast("Confirm transaction in wallet...", "success");
+            showToast("Confirm transaction...", "success");
             await tonConnectUI.sendTransaction(transaction);
             showToast("Verifying payment...", "success");
             
@@ -898,16 +904,29 @@ function App() {
                 showToast(`SUCCESS! Pack Opened!`, 'success');
                 setPacksSold(prev => prev + 1);
                 
-                // NOT: Backend'de "Mint" endpointi olmadığı için şimdilik lokal ekliyoruz.
-                // Gerçek senaryoda backend'e "Mintle" isteği atılmalı.
-                const newNft = { id: Date.now(), name: "Plush Bluppie", item_number: packsSold + 1, image_url: BLUPPIE_NFT_URL, status: "Owned" };
-                setUserInventory(prev => [...prev, newNft]);
+                // --- YENİ EKLENEN KISIM: BACKEND'E MINT İSTEĞİ ---
+                try {
+                    const newItemNumber = packsSold + 1;
+                    const mintRes = await apiCall('/mint', 'POST', {
+                        owner_address: userFriendlyAddress,
+                        name: "Plush Bluppie",
+                        item_number: newItemNumber,
+                        image_url: BLUPPIE_NFT_URL
+                    });
+
+                    // Backend'den dönen ID ile state güncelle
+                    if (mintRes && mintRes.status === 'success') {
+                         fetchAllData();
+                    }
+                } catch (mintError) {
+                    console.error("Mint db save error:", mintError);
+                    showToast("NFT bought but DB sync failed. Refresh page.", "error");
+                }
                 
                 setShowNewPackModal(false);
             } else {
                 showToast("Payment verification timed out.", "error");
             }
-
         } catch (e) {
             console.error(e);
             showToast('Transaction cancelled.', 'error');

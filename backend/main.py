@@ -7,10 +7,9 @@ from pydantic import BaseModel
 
 app = FastAPI()
 
-# --- CORS AYARLARI (Frontend erişimi için) ---
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Her yerden erişime izin ver (Demo için)
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -18,20 +17,12 @@ app.add_middleware(
 
 DB_NAME = "bluppie.db"
 
-# --- DB BAŞLATMA ---
 def init_db():
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
-    # Kullanıcılar
-    c.execute('''CREATE TABLE IF NOT EXISTS users 
-                 (address TEXT PRIMARY KEY, balance_ton REAL, balance_pie REAL, xp INTEGER)''')
-    # Envanter
-    c.execute('''CREATE TABLE IF NOT EXISTS inventory 
-                 (id INTEGER PRIMARY KEY, owner_address TEXT, name TEXT, item_number INTEGER, 
-                  image_url TEXT, status TEXT, price REAL, currency TEXT)''')
-    # DAO Oyları (Basit)
-    c.execute('''CREATE TABLE IF NOT EXISTS votes 
-                 (proposal_id INTEGER, voter_address TEXT, option_index INTEGER)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS users (address TEXT PRIMARY KEY, balance_ton REAL, balance_pie REAL, xp INTEGER)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS inventory (id INTEGER PRIMARY KEY, owner_address TEXT, name TEXT, item_number INTEGER, image_url TEXT, status TEXT, price REAL, currency TEXT)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS votes (proposal_id INTEGER, voter_address TEXT, option_index INTEGER)''')
     conn.commit()
     conn.close()
 
@@ -52,6 +43,12 @@ class VoteRequest(BaseModel):
     voter_address: str
     option_index: int
 
+class MintRequest(BaseModel):
+    owner_address: str
+    name: str
+    item_number: int
+    image_url: str
+
 # --- YARDIMCI ---
 def get_db():
     conn = sqlite3.connect(DB_NAME)
@@ -63,38 +60,29 @@ def seed_user(address: str):
     c = conn.cursor()
     user = c.execute("SELECT * FROM users WHERE address = ?", (address,)).fetchone()
     if not user:
-        # Yeni Kullanıcı Hediyeleri: 0 TON, 1000 PIE
-        c.execute("INSERT INTO users VALUES (?, ?, ?, ?)", (address, 0, 1000, 0))
-        # Hediye NFT
-        c.execute("INSERT INTO inventory (owner_address, name, item_number, image_url, status, price, currency) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                  (address, "Starter Bluppie", random.randint(1000, 9999), "https://i.imgur.com/TDukTkX.png", "Owned", 0, "TON"))
+        # DÜZELTME: Artık hediye yok. 0 TON, 0 PIE, 0 XP ile başlar.
+        c.execute("INSERT INTO users VALUES (?, ?, ?, ?)", (address, 0, 0, 0))
+        # NFT Hediye kodu silindi.
         conn.commit()
     conn.close()
 
-# --- API ENDPOINTS ---
-
+# --- ENDPOINTS ---
 @app.get("/")
-def read_root():
-    return {"status": "Bluppie Backend Online 🚀"}
+def read_root(): return {"status": "Bluppie Backend Live"}
 
 @app.get("/user/{address}")
 def get_user(address: str):
     seed_user(address)
     conn = get_db()
     c = conn.cursor()
-    
     user = c.execute("SELECT * FROM users WHERE address = ?", (address,)).fetchone()
     inventory = c.execute("SELECT * FROM inventory WHERE owner_address = ?", (address,)).fetchall()
-    
-    # Fake Transaction History
-    txs = [{"id": 1, "type": "Gift", "item_name": "Starter Pack", "amount": "Free", "currency": "", "status": "Done"}]
-    
     conn.close()
     return {
         "balance_ton": user["balance_ton"],
         "balance_pie": user["balance_pie"],
         "inventory": [dict(row) for row in inventory],
-        "transactions": txs
+        "transactions": []
     }
 
 @app.get("/marketplace/{viewer_address}")
@@ -104,9 +92,23 @@ def get_market(viewer_address: str):
     conn.close()
     return [dict(row) for row in items]
 
+@app.post("/mint")
+def mint_nft(req: MintRequest):
+    conn = get_db()
+    nft_id = random.randint(1000000, 9999999)
+    conn.execute("INSERT INTO inventory (id, owner_address, name, item_number, image_url, status, price, currency) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                 (nft_id, req.owner_address, req.name, req.item_number, req.image_url, "Owned", 0, "TON"))
+    conn.commit()
+    conn.close()
+    return {"status": "success", "nft_id": nft_id}
+
 @app.post("/marketplace/list")
 def list_nft(req: ListRequest):
     conn = get_db()
+    item = conn.execute("SELECT * FROM inventory WHERE id = ?", (req.nft_id,)).fetchone()
+    if not item:
+        conn.close()
+        raise HTTPException(status_code=404, detail="NFT Bulunamadı")
     conn.execute("UPDATE inventory SET status = 'Listed', price = ?, currency = ? WHERE id = ?", 
                  (req.price, req.currency, req.nft_id))
     conn.commit()
@@ -117,28 +119,23 @@ def list_nft(req: ListRequest):
 def buy_nft(req: BuyRequest):
     conn = get_db()
     c = conn.cursor()
-    
-    # NFT Kontrol
     item = c.execute("SELECT * FROM inventory WHERE id = ?", (req.nft_id,)).fetchone()
     if not item or item["status"] != "Listed":
         conn.close()
         raise HTTPException(status_code=400, detail="Item yok")
-        
+    
     price = item["price"]
     seller = item["owner_address"]
     buyer = req.buyer_address
     
-    # PIE ile alınıyorsa bakiye transferi (Simüle)
     if item["currency"] == "PIE":
         buyer_data = c.execute("SELECT balance_pie FROM users WHERE address = ?", (buyer,)).fetchone()
         if buyer_data["balance_pie"] < price:
             conn.close()
             raise HTTPException(status_code=400, detail="Para yok")
-        
         c.execute("UPDATE users SET balance_pie = balance_pie - ? WHERE address = ?", (price, buyer))
         c.execute("UPDATE users SET balance_pie = balance_pie + ? WHERE address = ?", (price, seller))
 
-    # Sahiplik Değişimi
     c.execute("UPDATE inventory SET owner_address = ?, status = 'Owned', price = 0 WHERE id = ?", (buyer, req.nft_id))
     conn.commit()
     conn.close()
@@ -155,17 +152,14 @@ def delist_nft(nft_id: int):
 @app.get("/leaderboard")
 def leaderboard():
     conn = get_db()
-    # En zenginler listesi
     rows = conn.execute("SELECT address, balance_pie FROM users ORDER BY balance_pie DESC LIMIT 10").fetchall()
     conn.close()
-    
     results = []
     for idx, row in enumerate(rows):
         addr = row["address"]
         short = addr[:4] + "..." + addr[-4:]
         badge = "👑" if idx == 0 else "💎" if idx < 3 else "🦈"
         results.append({"id": idx+1, "name": short, "score": row["balance_pie"], "badge": badge})
-        
     return results
 
 @app.post("/dao/vote")

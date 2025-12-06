@@ -768,7 +768,7 @@ function App() {
     const [marketplaceListings, setMarketplaceListings] = useState([]);
     const [marketplaceSearch, setMarketplaceSearch] = useState('');
     
-    // YENİ DÜZELTME: Sayaç 0'dan başlıyor
+    // Bar başlangıcı 0
     const [packsSold, setPacksSold] = useState(0);
     
     const [transactionHistory, setTransactionHistory] = useState([]);
@@ -797,6 +797,15 @@ function App() {
         else { document.body.style.overflow = ''; }
         return () => { document.body.style.overflow = ''; };
     }, [isAnyModalOpen]);
+
+    // --- EFFECT: GET STATS (Bar Güncelleme) ---
+    useEffect(() => {
+        apiCall('/stats').then(data => {
+            if(data && data.total_minted !== undefined) {
+                setPacksSold(data.total_minted);
+            }
+        }).catch(err => console.error("Stats error", err));
+    }, []);
 
     // --- DATA FETCHING (TONAPI + BACKEND) ---
     const fetchAllData = async () => {
@@ -844,7 +853,6 @@ function App() {
             const apiData = await apiCall(`/user/${userFriendlyAddress}`);
             setUserInventory(apiData.inventory || []);
             setTransactionHistory(apiData.transactions || []);
-            // Backend'den de bakiye gelebilir ama TONAPI daha günceldir, o yüzden üstüne yazmıyoruz.
         } catch (e) {
             console.error("User data fetch failed", e);
         }
@@ -885,12 +893,7 @@ function App() {
 
         const transaction = {
             validUntil: Math.floor(Date.now() / 1000) + 600, 
-            messages: [
-                {
-                    address: ADMIN_WALLET_ADDRESS, 
-                    amount: amountNano,
-                }
-            ]
+            messages: [{ address: ADMIN_WALLET_ADDRESS, amount: amountNano }]
         };
 
         try {
@@ -901,26 +904,27 @@ function App() {
             const isConfirmed = await waitForTransaction(userFriendlyAddress, amountTON);
 
             if (isConfirmed) {
-                showToast(`SUCCESS! Pack Opened!`, 'success');
-                setPacksSold(prev => prev + 1);
+                showToast(`SUCCESS! Minting NFT...`, 'success');
                 
-                // --- YENİ EKLENEN KISIM: BACKEND'E MINT İSTEĞİ ---
                 try {
-                    const newItemNumber = packsSold + 1;
+                    // Backend'e sadece "Bana mintle" diyoruz. ID'yi o seçecek.
                     const mintRes = await apiCall('/mint', 'POST', {
                         owner_address: userFriendlyAddress,
                         name: "Plush Bluppie",
-                        item_number: newItemNumber,
+                        item_number: 0, 
                         image_url: BLUPPIE_NFT_URL
                     });
 
-                    // Backend'den dönen ID ile state güncelle
                     if (mintRes && mintRes.status === 'success') {
+                         showToast(`You got Plush Bluppie #${mintRes.minted_id}!`, 'success');
+                         // Barı +1 yükselt
+                         setPacksSold(prev => prev + 1);
+                         // Envanteri yenile
                          fetchAllData();
                     }
                 } catch (mintError) {
-                    console.error("Mint db save error:", mintError);
-                    showToast("NFT bought but DB sync failed. Refresh page.", "error");
+                    console.error("Mint error:", mintError);
+                    showToast("Mint error: Sold out or System error.", "error");
                 }
                 
                 setShowNewPackModal(false);

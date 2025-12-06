@@ -55,13 +55,14 @@ async function apiCall(endpoint, method = 'GET', body = null) {
     }
 }
 
-// --- İŞLEM DOĞRULAMA (TONCENTER V2) ---
+// --- İŞLEM DOĞRULAMA (TONCENTER V2 - GÜÇLÜ) ---
 const waitForTransaction = async (address, expectedAmount, targetAddressOverride = null) => {
-    const maxRetries = 60; // 3 dakika
+    const maxRetries = 60; 
     let retries = 0;
     
     // Hedef cüzdan: Satıcı veya Admin
     const targetWalletRaw = targetAddressOverride || ADMIN_WALLET_ADDRESS;
+    // Adres formatı farkını aşmak için son 20 karakteri kontrol et
     const targetSnippet = targetWalletRaw.slice(-20); 
 
     return new Promise((resolve) => {
@@ -77,22 +78,20 @@ const waitForTransaction = async (address, expectedAmount, targetAddressOverride
                 if (data.ok && data.result) {
                     const foundTx = data.result.find(tx => {
                         if (!tx.out_msgs || tx.out_msgs.length === 0) return false;
-                        const msg = tx.out_msgs[0]; // Genelde ilk mesaj ana transferdir
+                        const msg = tx.out_msgs[0]; 
                         
-                        // Tutar kontrolü (yaklaşık)
                         const val = parseInt(msg.value);
                         const expectedNano = Math.floor(expectedAmount * 1000000000);
-                        const amountMatch = Math.abs(val - expectedNano) < 100000000; // Biraz tolerans tanı (Fee yüzünden)
+                        const amountMatch = Math.abs(val - expectedNano) < 100000000; // Tolerans
 
                         const txTime = tx.utime;
                         const now = Math.floor(Date.now() / 1000);
                         const isRecent = (now - txTime) < 300; 
 
-                        // Çoklu işlemde (Fee + Satıcı) hedef kontrolü zor olabilir, zaman ve miktar daha kritik.
-                        // Ama güvenlik için ana hedefin (satıcı veya admin) içinde olup olmadığına bakalım.
-                        // Toncenter bazen karmaşık döndüğü için, basitçe "Son 3 dakikada bu cüzdandan para çıktı mı?" yeterli olabilir.
-                        
-                        return isRecent; 
+                        // Basit hedef kontrolü (String içinde geçiyor mu?)
+                        const destMatch = msg.destination && msg.destination.includes(targetSnippet);
+
+                        return isRecent && destMatch; // Tutar kontrolünü esnettim, batch tx'de karışmasın diye
                     });
 
                     if (foundTx) {
@@ -132,90 +131,6 @@ function Toast({ show, message, type }) {
     );
 }
 
-function LeaderboardPage({ handleBack }) {
-    const [leaders, setLeaders] = useState([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        apiCall('/leaderboard')
-            .then((data) => { setLeaders(data); setLoading(false); })
-            .catch(() => setLoading(false));
-    }, []);
-
-    return (
-        <div className="container" style={{ padding: '0' }}>
-            <div className="holo-panel" style={{ display: 'flex', alignItems: 'center', padding: '15px', borderRadius: '0 0 24px 24px', borderTop: 'none', marginTop: '-16px' }}>
-                <button onClick={handleBack} style={{ background: 'none', border: 'none', color: 'var(--neon-purple)', cursor:'pointer' }}><Icons.Back /></button>
-                <h2 style={{ flexGrow: 1, textAlign: 'center', margin: 0, fontSize: '20px', color: 'var(--color-text-primary)' }}>Top Holders</h2>
-                <div style={{ width: 24 }}></div>
-            </div>
-            <div style={{ padding: '0 16px', marginTop: 20 }}>
-                {loading && <div style={{textAlign:'center', padding: 20}} className="text-dim">Loading database...</div>}
-                {!loading && leaders.map((user, index) => (
-                    <div key={user.id} className="holo-panel" style={{ padding: '15px', display: 'flex', alignItems: 'center', marginBottom: '10px', border: index === 0 ? '1px solid #FFD700' : '1px solid var(--color-glass-border)' }}>
-                        <div style={{ width: 30, fontSize: 18, fontWeight: 'bold', color: index < 3 ? 'var(--neon-purple)' : 'var(--color-text-secondary)' }}>#{index + 1}</div>
-                        <div style={{ flexGrow: 1, marginLeft: 10 }}>
-                            <div style={{ fontWeight: '700', color: 'var(--color-text-primary)' }}>{user.name} {user.badge}</div>
-                            <div style={{ fontSize: '12px', color: 'var(--color-text-dim)' }}>{getHolderBadge(user.score).title}</div>
-                        </div>
-                        <div className="text-neon" style={{ fontWeight: 'bold' }}>{user.score.toLocaleString()}</div>
-                    </div>
-                ))}
-            </div>
-        </div>
-    );
-}
-
-function DaoPage({ handleBack, showToast, userAddress }) {
-    const [proposals] = useState([
-        { id: 1, title: "Next Collection Theme?", options: ["Cyberpunk", "Nature", "Space"], votes: [45, 30, 25], status: "Active" },
-        { id: 2, title: "Weekly Burn Rate", options: ["1%", "5%", "10%"], votes: [10, 60, 30], status: "Ended" }
-    ]);
-    const [voting, setVoting] = useState(false);
-
-    const handleVote = async (proposalId, optionIndex) => {
-        if(!userAddress) { showToast("Connect Wallet first!", "error"); return; }
-        setVoting(true);
-        try {
-            await apiCall('/dao/vote', 'POST', { proposal_id: proposalId, voter_address: userAddress, option_index: optionIndex });
-            showToast("Vote Submitted!", "success");
-        } catch(e) { showToast("Voting Failed", "error"); }
-        setVoting(false);
-    };
-
-    return (
-        <div className="container" style={{ padding: '0' }}>
-            <div className="holo-panel" style={{ display: 'flex', alignItems: 'center', padding: '15px', borderRadius: '0 0 24px 24px', borderTop: 'none', marginTop: '-16px' }}>
-                <button onClick={handleBack} style={{ background: 'none', border: 'none', color: 'var(--neon-purple)', cursor:'pointer' }}><Icons.Back /></button>
-                <h2 style={{ flexGrow: 1, textAlign: 'center', margin: 0, fontSize: '20px', color: 'var(--color-text-primary)' }}>Bluppie DAO</h2>
-                <div style={{ width: 24 }}></div>
-            </div>
-            <div style={{ padding: '0 16px', marginTop: 20 }}>
-                {proposals.map((prop) => (
-                    <div key={prop.id} className="holo-panel" style={{ padding: '20px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
-                            <span style={{ fontSize: 10, padding: '4px 8px', borderRadius: 4, background: prop.status === 'Active' ? 'var(--neon-green)' : 'gray', color: '#000', fontWeight: 'bold' }}>{prop.status}</span>
-                            <span style={{ fontSize: 12, color: 'var(--color-text-dim)' }}>ID: #{prop.id}</span>
-                        </div>
-                        <h3 style={{ fontSize: 18, marginBottom: 15, color: 'var(--color-text-primary)' }}>{prop.title}</h3>
-                        {prop.options.map((opt, idx) => (
-                            <div key={idx} style={{ marginBottom: 10 }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, marginBottom: 4, color: 'var(--color-text-secondary)' }}>
-                                    <span>{opt}</span><span>{prop.votes[idx]}%</span>
-                                </div>
-                                <div style={{ height: 6, background: 'rgba(255,255,255,0.1)', borderRadius: 3, overflow: 'hidden' }}>
-                                    <div style={{ width: `${prop.votes[idx]}%`, height: '100%', background: 'var(--neon-purple)' }}></div>
-                                </div>
-                                {prop.status === 'Active' && <button onClick={() => handleVote(prop.id, idx)} disabled={voting} style={{marginTop: 5, background:'none', border:'1px solid var(--color-glass-border)', color:'var(--color-text-dim)', borderRadius: 8, padding: '4px 8px', fontSize: 10, cursor:'pointer'}}>Vote This</button>}
-                            </div>
-                        ))}
-                    </div>
-                ))}
-            </div>
-        </div>
-    );
-}
-
 function InventoryPage({ handleBack, openDetails, inventory, isShowingListings, toggleView }) {
     const ownedNfts = inventory.filter(nft => nft.status === 'Owned');
     const listedNfts = inventory.filter(nft => nft.status === 'Listed');
@@ -228,27 +143,54 @@ function InventoryPage({ handleBack, openDetails, inventory, isShowingListings, 
                 <h2 style={{ flexGrow: 1, textAlign: 'center', margin: 0, fontSize: '20px', color: 'var(--color-text-primary)' }}>Inventory</h2>
                 <div style={{ width: 24 }}></div>
             </div>
+
             <div className="sort-list-row" style={{ padding: '0 16px', marginBottom: '16px', display: 'flex', gap: '12px' }}>
-                <button className="action-btn" onClick={() => toggleView(false)} style={{ flex: 1, borderColor: !isShowingListings ? 'var(--neon-cyan)' : '', color: !isShowingListings ? 'var(--neon-cyan)' : 'var(--color-text-secondary)' }}>Owned ({ownedNfts.length})</button>
-                <button className="action-btn" onClick={() => toggleView(true)} style={{ flex: 1, borderColor: isShowingListings ? 'var(--neon-cyan)' : '', color: isShowingListings ? 'var(--neon-cyan)' : 'var(--color-text-secondary)' }}>Listings ({listedNfts.length})</button>
+                <button 
+                    className="action-btn" 
+                    onClick={() => toggleView(false)}
+                    style={{ flex: 1, borderColor: !isShowingListings ? 'var(--neon-cyan)' : '', color: !isShowingListings ? 'var(--neon-cyan)' : 'var(--color-text-secondary)' }}
+                >
+                    Owned ({ownedNfts.length})
+                </button>
+                <button 
+                    className="action-btn" 
+                    onClick={() => toggleView(true)}
+                    style={{ flex: 1, borderColor: isShowingListings ? 'var(--neon-cyan)' : '', color: isShowingListings ? 'var(--neon-cyan)' : 'var(--color-text-secondary)' }}
+                >
+                    Listings ({listedNfts.length})
+                </button>
             </div>
+
             <div className="nft-store" style={{ padding: '0 16px', border: 'none', background: 'transparent', boxShadow: 'none' }}>
+                <div style={{ marginBottom: '16px', color: 'var(--color-text-secondary)', fontSize: '14px', fontFamily: 'var(--font-head)' }}>
+                    TOTAL: <strong>{isShowingListings ? 'ON SALE' : 'NFTs'}</strong> ({displayedNfts.length})
+                </div>
+                
                 <div className="item-grid">
                     {displayedNfts.map((item) => (
                         <div key={item.id} className="marketplace-card" onClick={() => openDetails(item)}>
-                            <div className="card-image-wrapper"><img src={item.image_url || BLUPPIE_NFT_URL} className="card-image" /></div>
+                            <div className="card-image-wrapper">
+                                <img src={item.image_url || BLUPPIE_NFT_URL} alt={`${item.name} #${item.item_number}`} className="card-image" />
+                            </div>
                             <div style={{ padding: '12px' }}>
-                                <div style={{ fontSize: '14px', color: 'var(--color-text-secondary)', fontWeight: '600', marginBottom: '8px' }}>{item.name} <span className="text-neon">#{item.item_number}</span></div>
+                                <div style={{ fontSize: '14px', color: 'var(--color-text-secondary)', fontWeight: '600', marginBottom: '8px' }}>
+                                    {item.name} <span className="text-neon">#{item.item_number}</span>
+                                </div>
                             </div>
                         </div>
                     ))}
                 </div>
-                {displayedNfts.length === 0 && <div className="holo-panel" style={{ textAlign: 'center', color: 'var(--color-text-dim)' }}>EMPTY</div>}
+                {displayedNfts.length === 0 && (
+                    <div className="holo-panel" style={{ textAlign: 'center', color: 'var(--color-text-dim)' }}>
+                            EMPTY
+                    </div>
+                )}
             </div>
         </div>
     );
 }
 
+// --- ORİJİNAL ADIM ADIM LİSTELEME SAYFASI ---
 function ListingPage({ handleBack, inventory, showToast, finalizeListing }) {
     const [step, setStep] = useState('select'); 
     const [selectedNft, setSelectedNft] = useState(null);
@@ -261,23 +203,133 @@ function ListingPage({ handleBack, inventory, showToast, finalizeListing }) {
     const commissionAmount = buyerPays * COMM_RATE;
     const sellerReceives = buyerPays - commissionAmount;
     
-    const handleSelectNft = (nft) => { setSelectedNft(nft); setListingCurrency(null); setListingPrice(''); setStep('currency'); };
-    const handleFinalize = () => { if (numericPrice <= 0) return; finalizeListing(selectedNft.id, buyerPays.toFixed(4), listingCurrency); };
+    const handleSelectNft = (nft) => {
+        setSelectedNft(nft);
+        setListingCurrency(null); 
+        setListingPrice(''); 
+        setStep('currency');
+    };
 
-    return (
-        <div className="container" style={{ padding: '0' }}>
-            <div className="holo-panel" style={{ display: 'flex', alignItems: 'center', padding: '15px', borderRadius: '0 0 24px 24px', borderTop: 'none', marginTop: '-16px' }}>
-                <button onClick={() => step === 'select' ? handleBack() : setStep(step === 'price' ? 'currency' : 'select')} style={{ background: 'none', border: 'none', color: 'var(--neon-purple)', cursor: 'pointer' }}><Icons.Back /></button>
-                <h2 style={{ flexGrow: 1, textAlign: 'center', margin: 0, fontSize: '18px', color: 'var(--color-text-primary)' }}>{step === 'select' ? "SELECT" : step === 'currency' ? "CURRENCY" : "PRICE"}</h2>
-                <div style={{ width: 24 }}></div>
+    const handleFinalize = () => {
+        if (numericPrice <= 0) return;
+        finalizeListing(selectedNft.id, buyerPays.toFixed(4), listingCurrency);
+    };
+
+    const renderHeader = (title) => (
+        <div className="holo-panel" style={{ display: 'flex', alignItems: 'center', padding: '15px', borderRadius: '0 0 24px 24px', borderTop: 'none', marginTop: '-16px' }}>
+            <button 
+                onClick={() => {
+                    if (step === 'select') handleBack();
+                    else if (step === 'currency') setStep('select');
+                    else if (step === 'price') setStep('currency');
+                }} 
+                style={{ background: 'none', border: 'none', color: 'var(--neon-purple)', cursor: 'pointer' }}
+            >
+                <Icons.Back />
+            </button>
+            <h2 style={{ flexGrow: 1, textAlign: 'center', margin: 0, fontSize: '18px', color: 'var(--color-text-primary)' }}>{title}</h2>
+            <div style={{ width: 24 }}></div>
+        </div>
+    );
+
+    const renderStepSelect = () => (
+        <div style={{ padding: '0 16px' }}>
+            <div style={{ marginBottom: '16px', color: 'var(--color-text-secondary)', fontSize: '14px', fontFamily: 'var(--font-head)' }}>
+                    SELECT NFT FOR UPLOAD
             </div>
-            <div style={{ padding: '0 16px' }}>
-                {step === 'select' && <div className="item-grid">{inventory.map((item) => (<div key={item.id} className="marketplace-card" onClick={() => handleSelectNft(item)}><div className="card-image-wrapper"><img src={item.image_url || BLUPPIE_NFT_URL} className="card-image" /></div><div style={{ padding: '10px' }}>{item.name} #{item.item_number}</div></div>))}</div>}
-                {step === 'currency' && <div className="holo-panel"><button className="modal-item" style={{width:'100%', padding:15, display:'flex', alignItems:'center'}} onClick={() => { setListingCurrency('TON'); setStep('price'); }}><img src={TON_LOGO_URL} width="20" style={{marginRight:10}}/> TON (3% Fee)</button><button className="modal-item" style={{width:'100%', padding:15, display:'flex', alignItems:'center', marginTop:10}} onClick={() => { setListingCurrency('PIE'); setStep('price'); }}><img src={PIE_LOGO_URL} width="20" style={{marginRight:10}}/> PIE (0.1% Fee)</button></div>}
-                {step === 'price' && <div className="holo-panel"><div>PRICE ({listingCurrency})</div><input type="number" value={listingPrice} onChange={(e) => setListingPrice(e.target.value)} /><div style={{marginTop:10}}>Receive: {sellerReceives.toFixed(2)}</div><button className="cta-btn" onClick={handleFinalize} style={{marginTop:20}}>LIST ITEM</button></div>}
+            <div className="item-grid">
+                {inventory.map((item) => (
+                    <div key={item.id} className="marketplace-card" onClick={() => handleSelectNft(item)}>
+                        <div className="card-image-wrapper">
+                            <img src={item.image_url || BLUPPIE_NFT_URL} alt={`${item.name} #${item.item_number}`} className="card-image" />
+                        </div>
+                        <div style={{ padding: '10px' }}>
+                            <div style={{ fontSize: '14px', color: 'var(--color-text-primary)', fontWeight: '600' }}>{item.name} #{item.item_number}</div>
+                            <button className="cta-btn secondary" style={{ marginTop: '10px', padding: '8px', fontSize: '12px' }}>SELECT</button>
+                        </div>
+                    </div>
+                ))}
+            </div>
+            {inventory.length === 0 && <div className="holo-panel" style={{ textAlign: 'center', color: 'var(--color-text-dim)' }}>NO TRADABLE ASSETS</div>}
+        </div>
+    );
+
+    const renderStepCurrency = () => (
+        <div style={{ padding: '0 16px' }}>
+            <div className="holo-panel">
+                <div style={{ fontWeight: '700', marginBottom: '20px', fontFamily: 'var(--font-head)', fontSize: '18px', color: 'var(--color-text-primary)' }}>
+                    NFT: <span className="text-neon">{selectedNft.name} #{selectedNft.item_number}</span>
+                </div>
+                <div style={{ marginBottom: '15px', color: 'var(--color-text-secondary)' }}>SELECT LISTING CURRENCY:</div>
+
+                <button className="modal-item" style={{ width: '100%', padding: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }} onClick={() => { setListingCurrency('TON'); setStep('price'); }}>
+                    <div style={{display: 'flex', alignItems: 'center'}}>
+                        <img src={TON_LOGO_URL} style={{width: 24, height: 24, borderRadius: '50%', marginRight: 10}} />
+                        TONCOIN 
+                    </div>
+                    <span className="text-dim">{ (COMMISSION_TON * 100).toFixed(1) }% FEE &gt;</span>
+                </button>
+
+                <button className="modal-item" style={{ width: '100%', padding: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }} onClick={() => { setListingCurrency('PIE'); setStep('price'); }}>
+                    <div style={{display: 'flex', alignItems: 'center'}}>
+                        <img src={PIE_LOGO_URL} style={{width: 24, height: 24, borderRadius: '50%', marginRight: 10}} />
+                        $PIE
+                    </div>
+                    <span className="text-dim">{ (COMMISSION_PIE * 100).toFixed(1) }% FEE &gt;</span>
+                </button>
             </div>
         </div>
     );
+
+    const renderStepPrice = () => (
+        <div style={{ padding: '0 16px' }}>
+            <div className="holo-panel">
+                <div style={{ fontWeight: '700', marginBottom: '20px', fontFamily: 'var(--font-head)', color: 'var(--color-text-primary)' }}>
+                    LISTING: <span className="text-neon">{selectedNft.name} #{selectedNft.item_number}</span> in {listingCurrency}
+                </div>
+
+                <div style={{ marginBottom: '20px' }}>
+                    <div style={{ color: 'var(--color-text-secondary)', fontSize: '14px', marginBottom: '8px' }}>PRICE ({listingCurrency})</div>
+                    <input
+                        type="number"
+                        placeholder="0.00"
+                        value={listingPrice}
+                        onChange={(e) => setListingPrice(e.target.value)}
+                        min="0"
+                        step={listingCurrency === 'TON' ? "0.01" : "1"}
+                    />
+                </div>
+
+                <div style={{ padding: '15px', background: 'var(--color-glass-panel)', borderRadius: '12px', border: '1px solid var(--color-glass-border)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px', color: 'var(--color-text-primary)' }}>
+                        <span>Buyer Pays:</span>
+                        <span className="text-neon">{buyerPays.toLocaleString('en-US', {maximumFractionDigits: 4})} {listingCurrency}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px', color: 'var(--color-text-primary)' }}>
+                        <span>Fee:</span>
+                        <span style={{ color: 'var(--neon-red)' }}>- {commissionAmount.toLocaleString('en-US', {maximumFractionDigits: 4})} {listingCurrency}</span>
+                    </div>
+                    <hr style={{ borderColor: 'var(--color-glass-border)', margin: '10px 0' }} />
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '18px', fontFamily: 'var(--font-head)', color: 'var(--color-text-primary)' }}>
+                        <span>You Receive</span>
+                        <span className="text-green">{sellerReceives.toLocaleString('en-US', {maximumFractionDigits: 4})} {listingCurrency}</span>
+                    </div>
+                </div>
+
+                <button 
+                    className="cta-btn" 
+                    onClick={handleFinalize}
+                    disabled={numericPrice <= 0}
+                    style={{ marginTop: '20px' }}
+                >
+                    LIST NFT
+                </button>
+            </div>
+        </div>
+    );
+
+    let title = step === 'select' ? "SELECT (1/3)" : step === 'currency' ? "CURRENCY (2/3)" : "PRICING (3/3)";
+    return <div className="container" style={{ padding: '0' }}>{renderHeader(title)}{step === 'select' ? renderStepSelect() : step === 'currency' ? renderStepCurrency() : renderStepPrice()}</div>;
 }
 
 function InventoryDetailModal({ show, onClose, nft, showToast, isListed, deList, userAddress }) {
@@ -289,7 +341,6 @@ function InventoryDetailModal({ show, onClose, nft, showToast, isListed, deList,
         if (!recipientAddress || recipientAddress.length < 10) { showToast("Invalid address!", 'error'); return; }
         setIsTransferring(true);
         try {
-            // BACKEND ÜZERİNDEN TRANSFER
             const res = await apiCall('/inventory/transfer', 'POST', {
                 nft_id: nft.id,
                 sender_address: userAddress,
@@ -395,6 +446,90 @@ function TransactionHistoryPage({ handleBack, history }) {
     );
 }
 
+function LeaderboardPage({ handleBack }) {
+    const [leaders, setLeaders] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        apiCall('/leaderboard')
+            .then((data) => { setLeaders(data); setLoading(false); })
+            .catch(() => setLoading(false));
+    }, []);
+
+    return (
+        <div className="container" style={{ padding: '0' }}>
+            <div className="holo-panel" style={{ display: 'flex', alignItems: 'center', padding: '15px', borderRadius: '0 0 24px 24px', borderTop: 'none', marginTop: '-16px' }}>
+                <button onClick={handleBack} style={{ background: 'none', border: 'none', color: 'var(--neon-purple)', cursor:'pointer' }}><Icons.Back /></button>
+                <h2 style={{ flexGrow: 1, textAlign: 'center', margin: 0, fontSize: '20px', color: 'var(--color-text-primary)' }}>Top Holders</h2>
+                <div style={{ width: 24 }}></div>
+            </div>
+            <div style={{ padding: '0 16px', marginTop: 20 }}>
+                {loading && <div style={{textAlign:'center', padding: 20}} className="text-dim">Loading database...</div>}
+                {!loading && leaders.map((user, index) => (
+                    <div key={user.id} className="holo-panel" style={{ padding: '15px', display: 'flex', alignItems: 'center', marginBottom: '10px', border: index === 0 ? '1px solid #FFD700' : '1px solid var(--color-glass-border)' }}>
+                        <div style={{ width: 30, fontSize: 18, fontWeight: 'bold', color: index < 3 ? 'var(--neon-purple)' : 'var(--color-text-secondary)' }}>#{index + 1}</div>
+                        <div style={{ flexGrow: 1, marginLeft: 10 }}>
+                            <div style={{ fontWeight: '700', color: 'var(--color-text-primary)' }}>{user.name} {user.badge}</div>
+                            <div style={{ fontSize: '12px', color: 'var(--color-text-dim)' }}>{getHolderBadge(user.score).title}</div>
+                        </div>
+                        <div className="text-neon" style={{ fontWeight: 'bold' }}>{user.score.toLocaleString()}</div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+function DaoPage({ handleBack, showToast, userAddress }) {
+    const [proposals, setProposals] = useState([
+        { id: 1, title: "Next Collection Theme?", options: ["Cyberpunk", "Nature", "Space"], votes: [45, 30, 25], status: "Active" },
+        { id: 2, title: "Weekly Burn Rate", options: ["1%", "5%", "10%"], votes: [10, 60, 30], status: "Ended" }
+    ]);
+    const [voting, setVoting] = useState(false);
+
+    const handleVote = async (proposalId, optionIndex) => {
+        if(!userAddress) { showToast("Connect Wallet first!", "error"); return; }
+        setVoting(true);
+        try {
+            await apiCall('/dao/vote', 'POST', { proposal_id: proposalId, voter_address: userAddress, option_index: optionIndex });
+            showToast("Vote Submitted!", "success");
+        } catch(e) { showToast("Voting Failed", "error"); }
+        setVoting(false);
+    };
+
+    return (
+        <div className="container" style={{ padding: '0' }}>
+            <div className="holo-panel" style={{ display: 'flex', alignItems: 'center', padding: '15px', borderRadius: '0 0 24px 24px', borderTop: 'none', marginTop: '-16px' }}>
+                <button onClick={handleBack} style={{ background: 'none', border: 'none', color: 'var(--neon-purple)', cursor:'pointer' }}><Icons.Back /></button>
+                <h2 style={{ flexGrow: 1, textAlign: 'center', margin: 0, fontSize: '20px', color: 'var(--color-text-primary)' }}>Bluppie DAO</h2>
+                <div style={{ width: 24 }}></div>
+            </div>
+            <div style={{ padding: '0 16px', marginTop: 20 }}>
+                {proposals.map((prop) => (
+                    <div key={prop.id} className="holo-panel" style={{ padding: '20px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
+                            <span style={{ fontSize: 10, padding: '4px 8px', borderRadius: 4, background: prop.status === 'Active' ? 'var(--neon-green)' : 'gray', color: '#000', fontWeight: 'bold' }}>{prop.status}</span>
+                            <span style={{ fontSize: 12, color: 'var(--color-text-dim)' }}>ID: #{prop.id}</span>
+                        </div>
+                        <h3 style={{ fontSize: 18, marginBottom: 15, color: 'var(--color-text-primary)' }}>{prop.title}</h3>
+                        {prop.options.map((opt, idx) => (
+                            <div key={idx} style={{ marginBottom: 10 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, marginBottom: 4, color: 'var(--color-text-secondary)' }}>
+                                    <span>{opt}</span><span>{prop.votes[idx]}%</span>
+                                </div>
+                                <div style={{ height: 6, background: 'rgba(255,255,255,0.1)', borderRadius: 3, overflow: 'hidden' }}>
+                                    <div style={{ width: `${prop.votes[idx]}%`, height: '100%', background: 'var(--neon-purple)' }}></div>
+                                </div>
+                                {prop.status === 'Active' && <button onClick={() => handleVote(prop.id, idx)} disabled={voting} style={{marginTop: 5, background:'none', border:'1px solid var(--color-glass-border)', color:'var(--color-text-dim)', borderRadius: 8, padding: '4px 8px', fontSize: 10, cursor:'pointer'}}>Vote This</button>}
+                            </div>
+                        ))}
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
 // --- ANA UYGULAMA ---
 
 function App() {
@@ -417,6 +552,9 @@ function App() {
     const [showNewPackModal, setShowNewPackModal] = useState(false);
     const [showBuyModal, setShowBuyModal] = useState(false);
     const [selectedNFTToBuy, setSelectedNFTToBuy] = useState(null);
+    const [showBalanceTooltip, setShowBalanceTooltip] = useState(false);
+    const [showFilterModal, setShowFilterModal] = useState(false);
+    const [showSortModal, setShowSortModal] = useState(false);
     
     // Pages
     const [showInventoryPage, setShowInventoryPage] = useState(false);
@@ -427,6 +565,7 @@ function App() {
     const [showTransactionHistoryPage, setShowTransactionHistoryPage] = useState(false);
     const [showLeaderboardPage, setShowLeaderboardPage] = useState(false);
     const [showDaoPage, setShowDaoPage] = useState(false);
+    const [showStakingPage, setShowStakingPage] = useState(false);
 
     // Marketplace Vars
     const [currentSort, setCurrentSort] = useState('Price: Ascending');
@@ -449,24 +588,27 @@ function App() {
     const fetchAllData = async () => {
         if (!userFriendlyAddress) return;
 
-        // 1. TONAPI (Bakiye Okuma - Güvenilir)
+        // 1. TON & JETTON BALANCES (TONAPI.io - Güvenilir ve Ücretsiz Okuma)
         try {
+            // TON Balance
             const tonRes = await fetch(`https://tonapi.io/v2/accounts/${userFriendlyAddress}`, { headers: TONAPI_KEY ? {'Authorization': `Bearer ${TONAPI_KEY}`} : {} });
             if (tonRes.ok) {
                 const tonData = await tonRes.json();
-                setUserTonBalance(parseInt(tonData.balance) / 1000000000);
+                if (tonData && tonData.balance) {
+                    setUserTonBalance(parseInt(tonData.balance) / 1000000000);
+                }
             }
-            // Jettons
+
+            // Pie Token (Jetton) Balance
             const jettonRes = await fetch(`https://tonapi.io/v2/accounts/${userFriendlyAddress}/jettons`, { headers: TONAPI_KEY ? {'Authorization': `Bearer ${TONAPI_KEY}`} : {} });
             if (jettonRes.ok) {
                 const jettonData = await jettonRes.json();
                 const pie = jettonData.balances.find(t => t.jetton.address.includes(PIE_TOKEN_CONTRACT) || PIE_TOKEN_CONTRACT.includes(t.jetton.address));
                 if (pie) setUserPieBalance(parseFloat(pie.balance) / Math.pow(10, pie.jetton.decimals));
             }
-        } catch(e) { console.error("Balance Error", e); }
+        } catch(e) { console.error("Balance Fetch Error:", e); }
 
         // 2. BACKEND (Referans, Envanter, Geçmiş)
-        // Referans kodunu URL'den al
         let refCode = null;
         if (typeof WebApp !== 'undefined' && WebApp.initDataUnsafe && WebApp.initDataUnsafe.start_param) {
             refCode = WebApp.initDataUnsafe.start_param;
@@ -525,25 +667,24 @@ function App() {
         if (nft.currency === 'TON') {
             const price = nft.price;
             // %3 Fee Hesapla
-            const feeAmount = price * COMMISSION_TON; // 0.03
-            const sellerAmount = price - feeAmount;   // 0.97
+            const feeAmount = price * COMMISSION_TON; 
+            const sellerAmount = price - feeAmount;   
             
             const feeNano = Math.floor(feeAmount * 1000000000).toString();
             const sellerNano = Math.floor(sellerAmount * 1000000000).toString();
 
-            // ÇOKLU İŞLEM (BATCH TRANSACTION)
+            // ÇOKLU İŞLEM
             const transaction = {
                 validUntil: Math.floor(Date.now() / 1000) + 600, 
                 messages: [
-                    { address: nft.owner_address, amount: sellerNano }, // Satıcıya
-                    { address: ADMIN_WALLET_ADDRESS, amount: feeNano }  // Admine
+                    { address: nft.owner_address, amount: sellerNano }, 
+                    { address: ADMIN_WALLET_ADDRESS, amount: feeNano }  
                 ]
             };
 
             try {
                 await tonConnectUI.sendTransaction(transaction);
                 showToast("Verifying...", "success");
-                // Tutar olarak toplam fiyatı kontrol etsek yeterli
                 const isConfirmed = await waitForTransaction(userFriendlyAddress, price);
                 
                 if (isConfirmed) {
@@ -553,7 +694,7 @@ function App() {
                 }
             } catch (e) { showToast("Failed", "error"); }
         } else {
-            // PIE Alım (Backend Halleder)
+            // PIE Alım
             try {
                 const res = await apiCall('/marketplace/buy', 'POST', { nft_id: nft.id, buyer_address: userFriendlyAddress });
                 if(res.status === 'success') {
@@ -579,11 +720,13 @@ function App() {
     const closeAll = () => {
         setShowInventoryPage(false); setShowListingPage(false); setShowInventoryDetail(false);
         setShowTransactionHistoryPage(false); setShowLeaderboardPage(false); setShowDaoPage(false);
+        setShowStakingPage(false);
     };
 
     const renderContent = () => {
         if (showInventoryPage) return <InventoryPage handleBack={closeAll} openDetails={(n)=>{setSelectedInventoryNft(n); setShowInventoryDetail(true);}} inventory={userInventory} isShowingListings={isInventoryShowingListings} toggleView={setIsInventoryShowingListings} />;
         if (showListingPage) return <ListingPage handleBack={closeAll} inventory={userInventory.filter(n=>n.status==='Owned')} showToast={showToast} finalizeListing={handleFinalizeListing} />;
+        if (showStakingPage) return <StakingPage handleBack={closeAll} pieBalance={userPieBalance.toLocaleString()} showToast={showToast} />;
         if (showTransactionHistoryPage) return <TransactionHistoryPage handleBack={closeAll} history={transactionHistory} />;
         if (showLeaderboardPage) return <LeaderboardPage handleBack={closeAll} />;
         if (showDaoPage) return <DaoPage handleBack={closeAll} showToast={showToast} userAddress={userFriendlyAddress} />;
@@ -592,11 +735,11 @@ function App() {
             <>
                 <div className="holo-panel pulse-glow">
                     <div className="balance-display">
-                        <div className="balance-usd">${(userPieBalance * PIE_USD_PRICE).toFixed(2)}</div>
+                        <div className="balance-usd">${(userPieBalance * PIE_USD_PRICE).toFixed(2)} <button onClick={()=>setShowBalanceTooltip(true)} style={{background:'none', border:'none', cursor:'pointer'}}><Icons.Info/></button></div>
                         <div className="balance-pie">{userPieBalance.toLocaleString()} $PIE</div>
                     </div>
                     <div className="action-buttons">
-                        <button className="action-btn">STAKE</button>
+                        <button className="action-btn" onClick={()=>setShowStakingPage(true)}>STAKE</button>
                         <button className="action-btn" onClick={()=>setShowSocialsModal(true)}>SOCIAL</button>
                     </div>
                     <button className="cta-btn" onClick={()=>setShowGetPieModal(true)}>BUY $PIE</button>
@@ -619,11 +762,11 @@ function App() {
             <div className="marketplace-container">
                 <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16}}>
                     <h2 className="text-neon">Marketplace</h2>
-                    <div style={{fontSize:12}}>{currentCurrency === 'TON' ? userTonBalance.toFixed(2) : userPieBalance.toFixed(0)} {currentCurrency}</div>
+                    <button className="action-btn" onClick={()=>setShowFilterModal(true)}>{currentCurrency === 'TON' ? userTonBalance.toFixed(2) : userPieBalance.toFixed(0)} {currentCurrency} ▼</button>
                 </div>
                 <input className="search-input" placeholder="Search..." value={marketplaceSearch} onChange={e=>setMarketplaceSearch(e.target.value)} style={{marginBottom:16}}/>
                 <div className="sort-list-row" style={{display:'flex', gap:10, marginBottom:16}}>
-                    <button className="action-btn" onClick={()=>setCurrentSort(currentSort==='Price: Ascending'?'Price: Descending':'Price: Ascending')}>Sort: {currentSort.split(':')[1]}</button>
+                    <button className="action-btn" onClick={()=>setShowSortModal(true)}>Sort: {currentSort.split(':')[1]}</button>
                     <button className="cta-btn" onClick={()=>{setShowInventoryPage(true); setIsInventoryShowingListings(false);}}>+ LIST</button>
                 </div>
                 <div className="item-grid">
@@ -631,7 +774,7 @@ function App() {
                         <div key={item.id} className="marketplace-card" onClick={()=>{setSelectedNFTToBuy(item); setShowBuyModal(true);}}>
                             <div className="card-image-wrapper"><img src={item.image_url} className="card-image"/></div>
                             <div style={{padding:10}}>
-                                <div>{item.name} #{item.item_number}</div>
+                                <div>{item.name} <span className="text-neon">#{item.item_number}</span></div>
                                 <div className="card-price-tag">{item.price} {item.currency}</div>
                             </div>
                         </div>
@@ -655,6 +798,7 @@ function App() {
                     <button className="menu-item-button" style={{width:'100%', padding:15, textAlign:'left', background:'none', border:'none', borderBottom:'1px solid #eee'}} onClick={()=>setShowLeaderboardPage(true)}>🏆 Leaderboard</button>
                     <button className="menu-item-button" style={{width:'100%', padding:15, textAlign:'left', background:'none', border:'none', borderBottom:'1px solid #eee'}} onClick={()=>setShowDaoPage(true)}>🗳️ DAO</button>
                     <button className="menu-item-button" style={{width:'100%', padding:15, textAlign:'left', background:'none', border:'none', borderBottom:'1px solid #eee'}} onClick={()=>setShowInventoryPage(true)}>🎒 Inventory</button>
+                    <button className="menu-item-button" style={{width:'100%', padding:15, textAlign:'left', background:'none', border:'none', borderBottom:'1px solid #eee'}} onClick={()=>setShowStakingPage(true)}>🔒 Staking</button>
                     <button className="menu-item-button" style={{width:'100%', padding:15, textAlign:'left', background:'none', border:'none'}} onClick={()=>setShowTransactionHistoryPage(true)}>📜 History</button>
                 </div>
                 <div style={{marginTop:15, textAlign:'center'}}>
@@ -672,6 +816,16 @@ function App() {
             <NewPackModal show={showNewPackModal} onClose={()=>setShowNewPackModal(false)} showToast={showToast} handlePackPurchase={handlePackPurchase} packsSold={packsSold} userBalance={userTonBalance} />
             <BuyModal show={showBuyModal} onClose={()=>setShowBuyModal(false)} nft={selectedNFTToBuy} currentCurrency={currentCurrency} showToast={showToast} handlePurchase={handlePurchase} tonBalance={userTonBalance} pieBalance={userPieBalance} userAddress={userFriendlyAddress} />
             <InventoryDetailModal show={showInventoryDetail} onClose={()=>setShowInventoryDetail(false)} nft={selectedInventoryNft} showToast={showToast} isListed={selectedInventoryNft?.status==='Listed'} deList={handleDeList} userAddress={userFriendlyAddress} />
+            <BalanceTooltipModal show={showBalanceTooltip} onClose={()=>setShowBalanceTooltip(false)} usd={currentUSDValue} pie={userPieBalance} price={PIE_USD_PRICE} />
+            
+            {showSortModal && <div className="modal-overlay" onClick={()=>setShowSortModal(false)}><div className="modal-content" onClick={e=>e.stopPropagation()}><h3>SORT</h3>{['Price: Ascending', 'Price: Descending', 'Number: Ascending', 'Number: Descending'].map(o=><button key={o} className="modal-item" style={{width:'100%', padding:10, textAlign:'left'}} onClick={()=>{setCurrentSort(o); setShowSortModal(false);}}>{o}</button>)}</div></div>}
+            
+            {showFilterModal && <div className="modal-overlay" onClick={()=>setShowFilterModal(false)}><div className="modal-content" onClick={e=>e.stopPropagation()}><h3>CURRENCY</h3><button className="modal-item" style={{width:'100%', padding:15}} onClick={()=>{setCurrentCurrency('TON'); setShowFilterModal(false);}}>TON</button><button className="modal-item" style={{width:'100%', padding:15}} onClick={()=>{setCurrentCurrency('PIE'); setShowFilterModal(false);}}>PIE</button></div></div>}
+
+            {showGetPieModal && <div className="modal-overlay" onClick={()=>setShowGetPieModal(false)}><div className="modal-content" onClick={e=>e.stopPropagation()}><h3>BUY PIE</h3><button className="modal-item" style={{width:'100%', padding:15}} onClick={()=>{window.open(LINK_BLUM_SWAP); setShowGetPieModal(false);}}>BLUM SWAP</button></div></div>}
+
+            {showSocialsModal && <div className="modal-overlay" onClick={()=>setShowSocialsModal(false)}><div className="modal-content" onClick={e=>e.stopPropagation()}><h3>SOCIALS</h3><button className="modal-item" style={{width:'100%', padding:15}} onClick={()=>{window.open(SOCIAL_TWITTER); setShowSocialsModal(false);}}>Twitter</button><button className="modal-item" style={{width:'100%', padding:15}} onClick={()=>{window.open(SOCIAL_TELEGRAM); setShowSocialsModal(false);}}>Telegram</button></div></div>}
+
             <nav className="bottom-nav" style={{position: 'fixed', bottom: 20, left: '50%', transform: 'translateX(-50%)', width: '90%', maxWidth: 400, display: 'flex', justifyContent: 'space-around', alignItems: 'center', zIndex: 1000}}>
                 <div className={`nav-item ${activeTab==='Menu'?'active':''}`} onClick={()=>setActiveTab('Menu')}><Icons.Menu/></div>
                 <div className={`nav-item ${activeTab==='Marketplace'?'active':''}`} onClick={()=>setActiveTab('Marketplace')}><Icons.Market/></div>

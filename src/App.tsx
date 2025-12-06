@@ -6,10 +6,13 @@ import { TonConnectButton, useTonAddress, useTonConnectUI } from '@tonconnect/ui
 
 // --- AYARLAR ---
 const API_URL = "https://bluppie-backend.onrender.com"; 
-const TONCENTER_KEY = import.meta.env.VITE_TONCENTER_KEY; // .env dosyasında olduğundan emin ol
+
+// Hem Toncenter (İşlem Kontrolü) hem TonAPI (Bakiye Okuma) Keyleri
+const TONCENTER_KEY = import.meta.env.VITE_TONCENTER_KEY; 
+const TONAPI_KEY = import.meta.env.VITE_TONAPI_KEY; 
 
 // --- SABİTLER ---
-const PIE_TOKEN_CONTRACT = "EQD20HYB656hYyTJKh0bdO2ABNAcLXa45wIhJrApgJE8Nhxk"; // Pie Token Adresi (Kontrol et)
+const PIE_TOKEN_CONTRACT = "EQD20HYB656hYyTJKh0bdO2ABNAcLXa45wIhJrApgJE8Nhxk"; // Pie Token
 const ADMIN_WALLET_ADDRESS = "UQC0GE6NjIui0CAI_as7EKRP2bsetFyVLqz4pwV7BP3HFsE_"; 
 
 const BLUPPIE_NFT_URL = "https://i.imgur.com/TDukTkX.png"; 
@@ -53,47 +56,40 @@ async function apiCall(endpoint, method = 'GET', body = null) {
 }
 
 // --- GÜÇLÜ İŞLEM DOĞRULAMA (TONCENTER V2) ---
-const waitForTransaction = async (address, expectedAmount) => {
-    const maxRetries = 40; // 2 dakika boyunca dene (40 x 3sn)
+const waitForTransaction = async (address, expectedAmount, targetAddressOverride = null) => {
+    const maxRetries = 60; // 3 dakika
     let retries = 0;
     
+    // Eğer satıcı adresi verildiyse onu, yoksa admini hedef al
+    const targetWalletRaw = targetAddressOverride || ADMIN_WALLET_ADDRESS;
+    const targetSnippet = targetWalletRaw.slice(-20); // Son 20 karakteri kontrol et
+
     return new Promise((resolve) => {
         const interval = setInterval(async () => {
             retries++;
-            // Konsola yazalım, mobilde debug gerekirse diye
-            console.log(`[TX CHECK] Deneme ${retries}...`);
+            console.log(`[TX CHECK] ${retries}/60...`);
 
             try {
-                // Toncenter V2 Transactions Endpoint
                 const url = `https://toncenter.com/api/v2/getTransactions?address=${address}&limit=10&to_lt=0&archival=false`;
                 const res = await fetch(url, { headers: { 'X-API-Key': TONCENTER_KEY } });
                 const data = await res.json();
 
                 if (data.ok && data.result) {
                     const foundTx = data.result.find(tx => {
-                        // Sadece giden mesajlar (Bizim cüzdandan çıkanlar)
                         if (!tx.out_msgs || tx.out_msgs.length === 0) return false;
-                        
                         const msg = tx.out_msgs[0];
                         
-                        // 1. Tutar Kontrolü (Kesin Eşleşme + Ufak Gas Payı)
                         const val = parseInt(msg.value);
                         const expectedNano = Math.floor(expectedAmount * 1000000000);
-                        // 0.005 TON'a kadar gas farkını kabul et
-                        const amountMatch = Math.abs(val - expectedNano) < 5000000; 
+                        const amountMatch = Math.abs(val - expectedNano) < 50000000; 
 
-                        // 2. Zaman Kontrolü (Son 3 dakika)
                         const txTime = tx.utime;
                         const now = Math.floor(Date.now() / 1000);
-                        const isRecent = (now - txTime) < 180; 
+                        const isRecent = (now - txTime) < 300; 
 
-                        // 3. Adres Kontrolü (Gevşek Kontrol)
-                        // Tam string eşleşmesi yerine, admin cüzdanının son 5 karakteri tutuyor mu diye bakıyoruz.
-                        // Bu, Raw/UserFriendly format farkını yok eder.
-                        const adminSnippet = ADMIN_WALLET_ADDRESS.slice(-5);
-                        const destMatch = msg.destination && msg.destination.endsWith(adminSnippet);
+                        const destMatch = msg.destination && msg.destination.includes(targetSnippet);
 
-                        return amountMatch && isRecent; // && destMatch (Adres kontrolünü şimdilik kapattım, tutar ve zaman yeterli)
+                        return amountMatch && isRecent && destMatch;
                     });
 
                     if (foundTx) {
@@ -579,7 +575,7 @@ function NewPackModal({ show, onClose, showToast, handlePackPurchase, packsSold,
     );
 }
 
-function BuyModal({ show, onClose, nft, currentCurrency, showToast, handlePurchase, tonBalance, pieBalance }) {
+function BuyModal({ show, onClose, nft, currentCurrency, showToast, handlePurchase, tonBalance, pieBalance, userAddress }) {
     if (!show || !nft) return null;
     
     const listPriceTON = nft.price;
@@ -590,10 +586,14 @@ function BuyModal({ show, onClose, nft, currentCurrency, showToast, handlePurcha
     const balanceToCheck = isTon ? tonBalance : pieBalance;
     const canAfford = balanceToCheck >= price; 
     const currencyLogo = isTon ? TON_LOGO_URL : PIE_LOGO_URL;
+    
+    // Kendi ilanını alamazsın
+    const isSelf = userAddress && nft.owner_address === userAddress;
 
     const handleConfirmBuy = async () => {
+        if (isSelf) { showToast("You own this item!", "error"); return; }
         if (!canAfford) { showToast(`ERROR: Insufficient funds.`, 'error'); return; }
-        handlePurchase(nft.id, price, currentCurrency);
+        handlePurchase(nft); // Tüm objeyi gönder
     };
 
     return (
@@ -627,8 +627,8 @@ function BuyModal({ show, onClose, nft, currentCurrency, showToast, handlePurcha
                     </div>
                 </div>
                 
-                <button className="cta-btn" onClick={handleConfirmBuy} disabled={!canAfford}>
-                    {canAfford ? 'CONFIRM BUY' : 'INSUFFICIENT FUNDS'}
+                <button className="cta-btn" onClick={handleConfirmBuy} disabled={!canAfford || isSelf}>
+                    {isSelf ? 'YOU OWN THIS' : canAfford ? 'CONFIRM BUY' : 'INSUFFICIENT FUNDS'}
                 </button>
             </div>
         </div>
@@ -829,11 +829,11 @@ function App() {
             return;
         }
 
-        // 1. TON & JETTON BALANCES (Public TONAPI - Güvenilir ve Ücretsiz Okuma)
-        // Not: Toncenter V2 ile Jetton okumak zor olduğundan, bakiye okumada TonAPI V2 (Public) kullanıyoruz.
+        // 1. TON & JETTON BALANCES (TONAPI.io - Güvenilir ve Ücretsiz Okuma)
+        // NOT: Okuma için TonAPI kullanıyoruz çünkü daha kolay.
         try {
             // TON Balance
-            const tonRes = await fetch(`https://tonapi.io/v2/accounts/${userFriendlyAddress}`);
+            const tonRes = await fetch(`https://tonapi.io/v2/accounts/${userFriendlyAddress}`, { headers: TONAPI_KEY ? {'Authorization': `Bearer ${TONAPI_KEY}`} : {} });
             if (tonRes.ok) {
                 const tonData = await tonRes.json();
                 if (tonData && tonData.balance) {
@@ -841,13 +841,12 @@ function App() {
                 }
             }
 
-            // Pie Token (Jetton) Balance
-            const jettonRes = await fetch(`https://tonapi.io/v2/accounts/${userFriendlyAddress}/jettons`);
+            // Pie Token (Jetton) Balance - ANAHTAR DÜZELTME
+            const jettonRes = await fetch(`https://tonapi.io/v2/accounts/${userFriendlyAddress}/jettons`, { headers: TONAPI_KEY ? {'Authorization': `Bearer ${TONAPI_KEY}`} : {} });
             if (jettonRes.ok) {
                 const jettonData = await jettonRes.json();
                 if (jettonData && jettonData.balances) {
                     const pieToken = jettonData.balances.find(token => {
-                        // Raw veya Friendly adres eşleşmesi
                         return token.jetton.address.includes(PIE_TOKEN_CONTRACT) || PIE_TOKEN_CONTRACT.includes(token.jetton.address);
                     });
                     if (pieToken) {
@@ -864,7 +863,7 @@ function App() {
             console.error("Balance Fetch Error:", e); 
         }
 
-        // 2. BACKEND (Envanter, Geçmiş, vb.)
+        // 2. BACKEND
         try {
             const apiData = await apiCall(`/user/${userFriendlyAddress}`);
             setUserInventory(apiData.inventory || []);
@@ -900,7 +899,7 @@ function App() {
         fetchMarketplace();
     }, [currentSort, marketplaceSearch]);
 
-    // --- ACTIONS ---
+    // --- ACTIONS: MINT (Admin'e Para Gider) ---
     const handlePackPurchase = async () => {
         if (!userFriendlyAddress) { showToast("Connect Wallet First!", "error"); return; }
         
@@ -917,12 +916,11 @@ function App() {
             await tonConnectUI.sendTransaction(transaction);
             showToast("Verifying payment... (Wait)", "success");
             
-            // TONCENTER ile kontrol et (3 Dakika dener)
+            // ADMIN Cüzdanına giden ödemeyi kontrol et
             const isConfirmed = await waitForTransaction(userFriendlyAddress, amountTON);
 
             if (isConfirmed) {
                 showToast(`SUCCESS! Minting NFT...`, 'success');
-                
                 try {
                     const mintRes = await apiCall('/mint', 'POST', {
                         owner_address: userFriendlyAddress,
@@ -946,6 +944,68 @@ function App() {
         } catch (e) {
             console.error(e);
             showToast('Transaction cancelled.', 'error');
+        }
+    };
+
+    // --- ACTIONS: BUY (Satıcıya Para Gider) ---
+    // YENİ GÜNCELLEME: Tüm NFT objesini alıyor
+    const handlePurchase = async (nft) => {
+        if (!userFriendlyAddress) { showToast("Connect Wallet First!", "error"); return; }
+        
+        // 1. TON İLE ALIM
+        if (nft.currency === 'TON') {
+            const amountTON = nft.price;
+            const amountNano = Math.floor(amountTON * 1000000000).toString(); 
+    
+            // Satıcıya para gönder
+            const transaction = {
+                validUntil: Math.floor(Date.now() / 1000) + 600, 
+                messages: [{ address: nft.owner_address, amount: amountNano }]
+            };
+    
+            try {
+                showToast("Sending payment to seller...", "success");
+                await tonConnectUI.sendTransaction(transaction);
+                showToast("Verifying transfer...", "success");
+                
+                // Bu sefer HEDEF CÜZDAN SATICI OLUYOR (nft.owner_address)
+                const isConfirmed = await waitForTransaction(userFriendlyAddress, amountTON, nft.owner_address);
+                
+                if (isConfirmed) {
+                    // Backend'e "Ödeme yapıldı, malı devret" de
+                    const res = await apiCall('/marketplace/buy', 'POST', {
+                        nft_id: nft.id,
+                        buyer_address: userFriendlyAddress
+                    });
+                    if(res.status === 'success') {
+                        showToast(`Acquired NFT #${nft.item_number}!`, 'success');
+                        fetchAllData(); 
+                        fetchMarketplace(); 
+                        setShowBuyModal(false); 
+                    }
+                } else {
+                    showToast("Payment Timeout.", "error");
+                }
+            } catch (e) {
+                showToast('Transaction Failed', 'error');
+            }
+        } 
+        // 2. PIE İLE ALIM
+        else {
+            try {
+                const res = await apiCall('/marketplace/buy', 'POST', {
+                    nft_id: nft.id,
+                    buyer_address: userFriendlyAddress
+                });
+                if(res.status === 'success') {
+                    showToast(`Acquired NFT #${nft.item_number}!`, 'success');
+                    fetchAllData(); 
+                    fetchMarketplace(); 
+                    setShowBuyModal(false); 
+                }
+            } catch (e) {
+                showToast('Transaction Failed or Insufficient Funds', 'error');
+            }
         }
     };
 
@@ -999,24 +1059,6 @@ function App() {
                 fetchAllData();
             }
         } catch(e) { showToast("Delist Failed", "error"); }
-    };
-    
-    const handlePurchase = async (nftId, price, currency) => {
-        if (!userFriendlyAddress) { showToast("Connect Wallet First!", "error"); return; }
-        try {
-            const res = await apiCall('/marketplace/buy', 'POST', {
-                nft_id: nftId,
-                buyer_address: userFriendlyAddress
-            });
-            if(res.status === 'success') {
-                showToast(`Acquired NFT!`, 'success');
-                fetchAllData(); 
-                fetchMarketplace(); 
-                setShowBuyModal(false); 
-            }
-        } catch (e) {
-            showToast('Transaction Failed or Insufficient Funds', 'error');
-        }
     };
 
     const renderContent = () => {
@@ -1195,6 +1237,7 @@ function App() {
                 handlePurchase={handlePurchase}
                 tonBalance={userTonBalance}
                 pieBalance={userPieBalance}
+                userAddress={userFriendlyAddress}
             />
             <NewPackModal 
                 show={showNewPackModal} 

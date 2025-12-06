@@ -5,10 +5,11 @@ import WebApp from '@twa-dev/sdk';
 import { TonConnectButton, useTonAddress, useTonConnectUI } from '@tonconnect/ui-react';
 
 // --- AYARLAR ---
-// Kendi Render linkin (sonunda / yok)
+// Backend (Render) Linkin
 const API_URL = "https://bluppie-backend.onrender.com"; 
 
-const TONAPI_KEY = import.meta.env.VITE_TONAPI_KEY; 
+// Toncenter API Key (Vercel'den çeker)
+const TONCENTER_KEY = import.meta.env.VITE_TONCENTER_KEY; 
 
 // --- SABİTLER ---
 const PIE_TOKEN_CONTRACT = "0:e0207601eb9ea16324c92a1d1b74ed8004d01c2d76b8e7022126b02980913c36"; 
@@ -54,59 +55,74 @@ async function apiCall(endpoint, method = 'GET', body = null) {
     }
 }
 
-// --- AKILLI DOĞRULAMA (Geçmişe de bakar) ---
+// --- GÜÇLÜ DOĞRULAMA (TONCENTER V2) ---
+// Saniyede 10 işlem kaldırabilir, çok hızlıdır.
 const waitForTransaction = async (address, expectedAmount) => {
-    // 2 saniyede bir kontrol et, toplam 100 deneme (yaklaşık 3.5 dakika sabreder)
-    const maxRetries = 100; 
+    const maxRetries = 60; // 3 dakika boyunca dener (60 x 3sn)
     let retries = 0;
-    const targetWallet = ADMIN_WALLET_ADDRESS.toLowerCase(); 
+    
+    // Admin cüzdanının son 20 karakterini alarak karşılaştırma yaparız (Hata payını azaltır)
+    const targetWalletSnippet = ADMIN_WALLET_ADDRESS.slice(-20); 
 
     return new Promise((resolve) => {
         const interval = setInterval(async () => {
             retries++;
-            
+            // Debug için konsola yazalım
+            console.log(`[Toncenter] Tx aranıyor... Deneme: ${retries}`);
+
             try {
-                // Son 20 işlemi çekiyoruz (Böylece telefon uyusa bile kaçan işlemi yakalarız)
-                const res = await fetch(`https://tonapi.io/v2/blockchain/accounts/${address}/transactions?limit=20`, {
-                    headers: TONAPI_KEY ? { 'Authorization': `Bearer ${TONAPI_KEY}` } : {}
+                // TONCENTER V2 API ÇAĞRISI
+                const url = `https://toncenter.com/api/v2/getTransactions?address=${address}&limit=10&to_lt=0&archival=false`;
+                
+                const res = await fetch(url, {
+                    headers: { 
+                        'X-API-Key': TONCENTER_KEY // Senin aldığın API Key
+                    }
                 });
+                
+                if (!res.ok) throw new Error("Toncenter Erişim Hatası");
+                
                 const data = await res.json();
 
-                if (data && data.transactions) {
-                    const foundTx = data.transactions.find(tx => {
-                        if (tx.out_msgs.length === 0) return false;
+                // Toncenter'da işlemler "result" dizisi içindedir
+                if (data.ok && data.result) {
+                    const foundTx = data.result.find(tx => {
+                        // Sadece giden mesajlara bak (out_msgs)
+                        if (!tx.out_msgs || tx.out_msgs.length === 0) return false;
+                        
                         const msg = tx.out_msgs[0];
                         
-                        // Tutar Kontrolü (Gas farkı toleransı ile)
-                        const amountMatch = Math.abs(msg.value - (expectedAmount * 1000000000)) < 20000000; 
-                        
-                        // Zaman Kontrolü (Son 5 dakika içindeki işlemleri kabul et)
+                        // 1. Hedef Cüzdan Kontrolü
+                        // Giden mesajın hedefinde bizim admin cüzdanının parçası var mı?
+                        const destMatch = msg.destination && msg.destination.includes(targetWalletSnippet);
+
+                        // 2. Tutar Kontrolü (NanoTON)
+                        const val = parseInt(msg.value);
+                        const expectedNano = expectedAmount * 1000000000;
+                        const amountMatch = Math.abs(val - expectedNano) < 50000000; // Ufak gas farklarını yoksay
+
+                        // 3. Zaman Kontrolü (Unix Timestamp)
                         const txTime = tx.utime;
                         const now = Math.floor(Date.now() / 1000);
-                        const isRecent = (now - txTime) < 300; 
+                        const isRecent = (now - txTime) < 600; // Son 10 dakika içindeki işlemler
 
-                        // Hedef Adres Kontrolü
-                        let txDestination = "";
-                        if (msg.destination) {
-                            txDestination = typeof msg.destination === 'object' ? msg.destination.address : msg.destination;
-                        }
-                        const destMatch = txDestination && targetWallet.endsWith(txDestination.slice(-30).toLowerCase());
-
-                        return isRecent && amountMatch && destMatch;
+                        return destMatch && amountMatch && isRecent;
                     });
 
                     if (foundTx) {
                         clearInterval(interval);
-                        resolve(true); // Bulduk!
+                        resolve(true); // İŞLEM BULUNDU!
                     }
                 }
-            } catch (e) { console.error("API Check Error", e); }
+            } catch (e) { 
+                console.error("Toncenter Check Error:", e); 
+            }
 
             if (retries >= maxRetries) {
                 clearInterval(interval);
-                resolve(false); // Pes et
+                resolve(false); // Zaman aşımı
             }
-        }, 2000); // 2 saniyede bir
+        }, 3000); // 3 saniyede bir sor
     });
 };
 
@@ -523,7 +539,6 @@ function NewPackModal({ show, onClose, showToast, handlePackPurchase, packsSold,
     const isSoldOut = packsSold >= TOTAL_SUPPLY;
     const canAfford = userBalance >= PACK_PRICE;
 
-    // Satın Alma işlemi başlat
     const handlePurchase = () => {
         if (isSoldOut) return;
         if (!canAfford) { showToast(`INSUFFICIENT CREDITS: ${PACK_PRICE.toFixed(2)} TON required.`, 'error'); return; }
@@ -821,7 +836,7 @@ function App() {
         }).catch(err => console.error("Stats error", err));
     }, []);
 
-    // --- DATA FETCHING (TONAPI + BACKEND) ---
+    // --- DATA FETCHING (TONCENTER V2 + BACKEND) ---
     const fetchAllData = async () => {
         if (!userFriendlyAddress) {
             setUserTonBalance(0);
@@ -829,37 +844,20 @@ function App() {
             return;
         }
 
-        // 1. TONAPI (Gerçek Cüzdan Bakiyeleri)
-        const headers = TONAPI_KEY ? { 'Authorization': `Bearer ${TONAPI_KEY}` } : {};
-
+        // 1. TONCENTER V2 (Gerçek Cüzdan Bakiyesi)
         try {
-            const tonRes = await fetch(`https://tonapi.io/v2/accounts/${userFriendlyAddress}`, { headers });
+            const tonUrl = `https://toncenter.com/api/v2/getAddressBalance?address=${userFriendlyAddress}`;
+            const tonRes = await fetch(tonUrl, { headers: { 'X-API-Key': TONCENTER_KEY }});
+            
             if (tonRes.ok) {
                 const tonData = await tonRes.json();
-                if (tonData && tonData.balance) {
-                    setUserTonBalance(parseInt(tonData.balance) / 1000000000);
-                }
-            }
-
-            const jettonRes = await fetch(`https://tonapi.io/v2/accounts/${userFriendlyAddress}/jettons`, { headers });
-            if (jettonRes.ok) {
-                const jettonData = await jettonRes.json();
-                if (jettonData && jettonData.balances) {
-                    const pieToken = jettonData.balances.find(token => {
-                        return token.jetton.address === PIE_TOKEN_CONTRACT;
-                    });
-                    if (pieToken) {
-                        const decimals = pieToken.jetton.decimals || 9; 
-                        const rawBalance = parseFloat(pieToken.balance);
-                        const calculatedBalance = rawBalance / Math.pow(10, decimals);
-                        setUserPieBalance(calculatedBalance);
-                    } else {
-                        setUserPieBalance(0);
-                    }
+                if (tonData.ok) {
+                    // NanoTON'dan TON'a çevir
+                    setUserTonBalance(parseInt(tonData.result) / 1000000000);
                 }
             }
         } catch (e) { 
-            console.error("TonAPI Fetch Error:", e); 
+            console.error("Toncenter Fetch Error:", e); 
         }
 
         // 2. BACKEND (Envanter, Geçmiş, vb.)
@@ -915,7 +913,7 @@ function App() {
             await tonConnectUI.sendTransaction(transaction);
             showToast("Verifying payment... (Wait)", "success");
             
-            // AUTOMATIC CHECK WITH LONG TIMEOUT (No User Prompt)
+            // TONCENTER ile kontrol et (3 Dakika dener)
             const isConfirmed = await waitForTransaction(userFriendlyAddress, amountTON);
 
             if (isConfirmed) {

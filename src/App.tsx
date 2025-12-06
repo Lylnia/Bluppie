@@ -5,14 +5,16 @@ import WebApp from '@twa-dev/sdk';
 import { TonConnectButton, useTonAddress, useTonConnectUI } from '@tonconnect/ui-react';
 
 // --- AYARLAR ---
+// 1. Backend Linkin (Render)
 const API_URL = "https://bluppie-backend.onrender.com"; 
 
-// Hem Toncenter (İşlem Kontrolü) hem TonAPI (Bakiye Okuma) Keyleri
-const TONCENTER_KEY = import.meta.env.VITE_TONCENTER_KEY; 
-const TONAPI_KEY = import.meta.env.VITE_TONAPI_KEY; 
+// 2. API Anahtarları (.env dosyasından gelir)
+const TONCENTER_KEY = import.meta.env.VITE_TONCENTER_KEY; // İşlem kontrolü için (Hızlı)
+const TONAPI_KEY = import.meta.env.VITE_TONAPI_KEY;       // Bakiye okumak için (Kolay)
 
 // --- SABİTLER ---
-const PIE_TOKEN_CONTRACT = "EQD20HYB656hYyTJKh0bdO2ABNAcLXa45wIhJrApgJE8Nhxk"; // Pie Token
+// Pie Token Kontrat Adresi (Doğru olduğundan emin ol)
+const PIE_TOKEN_CONTRACT = "EQD20HYB656hYyTJKh0bdO2ABNAcLXa45wIhJrApgJE8Nhxk"; 
 const ADMIN_WALLET_ADDRESS = "UQC0GE6NjIui0CAI_as7EKRP2bsetFyVLqz4pwV7BP3HFsE_"; 
 
 const BLUPPIE_NFT_URL = "https://i.imgur.com/TDukTkX.png"; 
@@ -38,6 +40,7 @@ const SOCIAL_DISCORD = "https://discord.gg/";
 
 // --- YARDIMCI FONKSİYONLAR ---
 
+// Backend ile konuşan fonksiyon
 async function apiCall(endpoint, method = 'GET', body = null) {
     const options = {
         method,
@@ -45,7 +48,8 @@ async function apiCall(endpoint, method = 'GET', body = null) {
     };
     if (body) options.body = JSON.stringify(body);
     try {
-        const baseUrl = API_URL.includes("localhost") ? API_URL : API_URL.replace(/\/$/, "");
+        // Linkin sonunda / varsa temizle
+        const baseUrl = API_URL.endsWith('/') ? API_URL.slice(0, -1) : API_URL;
         const res = await fetch(`${baseUrl}${endpoint}`, options);
         if (!res.ok) throw new Error('API Error');
         return await res.json();
@@ -55,38 +59,48 @@ async function apiCall(endpoint, method = 'GET', body = null) {
     }
 }
 
-// --- GÜÇLÜ İŞLEM DOĞRULAMA (TONCENTER V2) ---
+// --- KRİTİK: İŞLEM DOĞRULAMA (TONCENTER V2) ---
+// Bu fonksiyon "targetAddressOverride" parametresi alır.
+// Mint yaparken Admin'i, Marketten alırken Satıcı'yı kontrol eder.
 const waitForTransaction = async (address, expectedAmount, targetAddressOverride = null) => {
-    const maxRetries = 60; // 3 dakika
+    const maxRetries = 60; // 3 dakika bekle (60 x 3sn)
     let retries = 0;
     
-    // Eğer satıcı adresi verildiyse onu, yoksa admini hedef al
+    // Hedef cüzdanı belirle (Varsayılan: Admin)
     const targetWalletRaw = targetAddressOverride || ADMIN_WALLET_ADDRESS;
-    const targetSnippet = targetWalletRaw.slice(-20); // Son 20 karakteri kontrol et
+    // Adres formatı farkını (Raw vs Friendly) aşmak için son 20 karaktere bakarız
+    const targetSnippet = targetWalletRaw.slice(-20); 
 
     return new Promise((resolve) => {
         const interval = setInterval(async () => {
             retries++;
-            console.log(`[TX CHECK] ${retries}/60...`);
+            console.log(`[TX CHECK] ${retries}/60... Hedef: ...${targetSnippet}`);
 
             try {
+                // Toncenter'a soruyoruz
                 const url = `https://toncenter.com/api/v2/getTransactions?address=${address}&limit=10&to_lt=0&archival=false`;
                 const res = await fetch(url, { headers: { 'X-API-Key': TONCENTER_KEY } });
                 const data = await res.json();
 
                 if (data.ok && data.result) {
                     const foundTx = data.result.find(tx => {
+                        // Sadece giden (out) mesajlara bak
                         if (!tx.out_msgs || tx.out_msgs.length === 0) return false;
+                        
                         const msg = tx.out_msgs[0];
                         
+                        // 1. Tutar Kontrolü (NanoTON)
                         const val = parseInt(msg.value);
                         const expectedNano = Math.floor(expectedAmount * 1000000000);
+                        // 0.05 TON'a kadar gas farkını kabul et (Güvenli aralık)
                         const amountMatch = Math.abs(val - expectedNano) < 50000000; 
 
+                        // 2. Zaman Kontrolü (Son 3 dakika)
                         const txTime = tx.utime;
                         const now = Math.floor(Date.now() / 1000);
-                        const isRecent = (now - txTime) < 300; 
+                        const isRecent = (now - txTime) < 180; 
 
+                        // 3. Hedef Cüzdan Kontrolü
                         const destMatch = msg.destination && msg.destination.includes(targetSnippet);
 
                         return amountMatch && isRecent && destMatch;
